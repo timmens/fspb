@@ -2,3 +2,9 @@
 # pixi environments
 .pixi
 *.egg-info
+
+# build directory
+bld
+
+# Python
+__pycache__/

@@ -74,4 +74,5 @@ repos:
           - pandas-stubs
           - scipy-stubs
           - matplotlib
+          - pytask
         args: [--config=pyproject.toml]
