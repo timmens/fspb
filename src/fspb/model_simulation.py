@@ -5,11 +5,18 @@ import scipy as sp
 from numpy.typing import NDArray
 
 
+class CovarianceType(Enum):
+    """The type of covariance kernel to use."""
+
+    STATIONARY = "Stationary"
+    NON_STATIONARY = "NonStationary"
+
+
 def simulate_from_model(
     n_samples: int,
     time_grid: NDArray[np.float64],
     dof: int,
-    covariance_type: "CovarianceType",
+    covariance_type: CovarianceType | str,
     length_scale: float = 1,
     rng: np.random.Generator | None = None,
 ):
@@ -30,6 +37,12 @@ def simulate_from_model(
     """
     if rng is None:
         rng = np.random.default_rng()
+
+    if not isinstance(covariance_type, CovarianceType):
+        try:
+            covariance_type = CovarianceType[covariance_type.upper()]
+        except ValueError:
+            raise ValueError(f"Invalid covariance type: {covariance_type}")
 
     predictor = _simulate_predictor(
         time_grid=time_grid,
@@ -149,13 +162,6 @@ def _predictor_function(
 # ======================================================================================
 # Simulate Error
 # ======================================================================================
-
-
-class CovarianceType(Enum):
-    """The type of covariance kernel to use."""
-
-    STATIONARY = "Stationary"
-    NON_STATIONARY = "NonStationary"
 
 
 def _simulate_error(
