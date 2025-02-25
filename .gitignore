@@ -8,3 +8,4 @@ bld
 
 # Python
 __pycache__/
+**/sandbox.ipynb

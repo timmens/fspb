@@ -36,3 +36,8 @@ pytask = ">=0.5.2,<0.6"
 
 [tool.pytask.ini_options]
 paths = ["./src/fspb"]
+
+[tool.ruff]
+target-version = "py313"
+fix = true
+unsafe-fixes = true

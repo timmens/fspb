@@ -916,7 +916,7 @@ packages:
 - pypi: .
   name: fspb
   version: 0.1.0
-  sha256: d0bb19f5c710654796b01231d4b20c0b262d01bc20dec8325adf52a2592afd8c
+  sha256: 43d00131b188772bd5b966c6bb86143d855e8e895ff7238342e2a15b51fa282b
   requires_python: '>=3.13'
   editable: true
 - conda: https://conda.anaconda.org/conda-forge/noarch/fsspec-2025.2.0-pyhd8ed1ab_0.conda
