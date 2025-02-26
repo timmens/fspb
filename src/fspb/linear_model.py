@@ -16,7 +16,7 @@ def fit_concurrent_model(
         fit_intercept: bool = True
 
     Returns:
-        Coefficients of shape (n_time_points, n_features)
+        Coefficients of shape (n_features, n_time_points)
 
     """
     xt = x.T
@@ -31,4 +31,4 @@ def fit_concurrent_model(
         _coef = np.linalg.lstsq(_x, _y, rcond=None)[0]
         coefs_list.append(_coef)
 
-    return np.asarray(coefs_list)
+    return np.asarray(coefs_list).T

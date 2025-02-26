@@ -39,7 +39,7 @@ class Algorithm(ABC):
             fprime=self._equation_gradient,
             fprime2=self._equation_hessian,
             args=(interval_index,),
-            bracket=[-10, 10],
+            bracket=[-30, 30],
             method=method,
         )
 
