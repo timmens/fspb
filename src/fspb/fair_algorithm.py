@@ -1,11 +1,10 @@
 import numpy as np
 from numpy.typing import NDArray
-from typing import Any, Callable
 from enum import Enum, auto
 from dataclasses import dataclass
 from scipy.optimize import root_scalar, RootResults
 from scipy.stats import norm, t
-from scipy.integrate import quad
+from scipy.integrate import simpson
 from abc import ABC, abstractmethod
 from joblib import Parallel, delayed
 
@@ -13,6 +12,64 @@ from joblib import Parallel, delayed
 class DistributionType(Enum):
     GAUSSIAN = auto()
     STUDENT_T = auto()
+
+
+def fair_critical_value_selection(
+    significance_level: float,
+    interval_cutoffs: NDArray[np.float64],
+    time_grid: NDArray[np.float64],
+    roughness: NDArray[np.float64],
+    distribution_type: DistributionType | str,
+    degrees_of_freedom: int | None = None,
+    method: str = "brentq",
+    n_cores: int = 1,
+    *,
+    raise_on_error: bool = True,
+) -> NDArray[np.float64]:
+    if not isinstance(distribution_type, DistributionType):
+        try:
+            distribution_type = DistributionType[distribution_type.upper()]
+        except ValueError:
+            raise ValueError(f"Invalid distribution type: {distribution_type}")
+
+    roughness_integrals = _calculate_piecewise_integrals(
+        interval_cutoffs, values=roughness, time_grid=time_grid
+    )
+    interval_lengths = interval_cutoffs[1:] - interval_cutoffs[:-1]
+
+    algo: Algorithm
+
+    if distribution_type == DistributionType.GAUSSIAN:
+        algo = GaussianAlgorithm(
+            significance_level=significance_level,
+            interval_cutoffs=interval_cutoffs,
+            roughness_integrals=roughness_integrals,
+            interval_lengths=interval_lengths,
+        )
+    elif distribution_type == DistributionType.STUDENT_T:
+        if degrees_of_freedom is None:
+            raise ValueError(
+                "Degrees of freedom must be provided for Student-t distribution"
+            )
+
+        algo = StudentTAlgorithm(
+            significance_level=significance_level,
+            interval_cutoffs=interval_cutoffs,
+            roughness_integrals=roughness_integrals,
+            interval_lengths=interval_lengths,
+            degrees_of_freedom=degrees_of_freedom,
+        )
+
+    root_results = algo.solve(method=method, n_cores=n_cores)
+
+    roots = []
+
+    for k, root_result in enumerate(root_results):
+        if raise_on_error and not root_result.converged:
+            raise ValueError(f"Root for interval {k} did not converge")
+        roots.append(root_result.root)
+
+    return np.array(roots, dtype=np.float64)
 
 
 @dataclass(frozen=True)
@@ -39,7 +96,7 @@ class Algorithm(ABC):
             fprime=self._equation_gradient,
             fprime2=self._equation_hessian,
             args=(interval_index,),
-            bracket=[-30, 30],
+            bracket=[-10, 10],
             method=method,
         )
 
@@ -132,61 +189,27 @@ class StudentTAlgorithm(Algorithm):
         return 2 / self.degrees_of_freedom
 
 
-def fair_critical_value_selection(
-    significance_level: float,
+def _calculate_piecewise_integrals(
     interval_cutoffs: NDArray[np.float64],
-    roughness_function: Callable[[float], float],
-    distribution_type: DistributionType | str,
-    degrees_of_freedom: int | None = None,
-    method: str = "brentq",
-    n_cores: int = 1,
-    quad_kwargs: dict[str, Any] = {},
-) -> list[RootResults]:
-    if not isinstance(distribution_type, DistributionType):
-        try:
-            distribution_type = DistributionType[distribution_type.upper()]
-        except ValueError:
-            raise ValueError(f"Invalid distribution type: {distribution_type}")
-
-    roughness_integrals = _piecewise_integrals(
-        interval_cutoffs, roughness_function, quad_kwargs
-    )
-    interval_lengths = interval_cutoffs[1:] - interval_cutoffs[:-1]
-
-    algo: Algorithm
-
-    if distribution_type == DistributionType.GAUSSIAN:
-        algo = GaussianAlgorithm(
-            significance_level=significance_level,
-            interval_cutoffs=interval_cutoffs,
-            roughness_integrals=roughness_integrals,
-            interval_lengths=interval_lengths,
-        )
-    elif distribution_type == DistributionType.STUDENT_T:
-        if degrees_of_freedom is None:
-            raise ValueError(
-                "Degrees of freedom must be provided for Student-t distribution"
-            )
-
-        algo = StudentTAlgorithm(
-            significance_level=significance_level,
-            interval_cutoffs=interval_cutoffs,
-            roughness_integrals=roughness_integrals,
-            interval_lengths=interval_lengths,
-            degrees_of_freedom=degrees_of_freedom,
-        )
-
-    return algo.solve(method=method, n_cores=n_cores)
-
-
-def _piecewise_integrals(
-    interval_cutoffs: NDArray[np.float64],
-    func: Callable[[float], float],
-    quad_kwargs: dict[str, Any] = {},
+    values: NDArray[np.float64],
+    time_grid: NDArray[np.float64],
 ) -> NDArray[np.float64]:
     integrals = np.empty(len(interval_cutoffs) - 1)
-    for i in range(len(interval_cutoffs) - 1):
-        integrals[i] = quad(
-            func, interval_cutoffs[i], interval_cutoffs[i + 1], **quad_kwargs
-        )[0]
+
+    idx = np.searchsorted(time_grid, interval_cutoffs)
+
+    for i in range(len(interval_cutoffs) - 2):
+        # include the right boundary of the interval for the last interval
+        if i == len(interval_cutoffs) - 2:
+            include_right_boundary = 1
+        else:
+            include_right_boundary = 0
+
+        _func_in_interval = values[idx[i] : idx[i + 2] + include_right_boundary]
+        _time_in_interval = time_grid[idx[i] : idx[i + 2] + include_right_boundary]
+
+        interval_integral = simpson(_func_in_interval, _time_in_interval)
+
+        integrals[i] = interval_integral
+
     return integrals

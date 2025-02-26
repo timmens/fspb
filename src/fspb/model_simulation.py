@@ -65,7 +65,7 @@ def simulate_from_model(
         time_grid=time_grid,
     )
 
-    return outcome, predictor
+    return np.squeeze(outcome), np.squeeze(predictor)
 
 
 # ======================================================================================
@@ -81,8 +81,8 @@ def _compute_outcome(
     """Compute the outcome.
 
     Args:
-        predictor: The predictor grid to compute the outcome for. Has shape (n_samples,
-            n_points).
+        predictor: The predictor grid to compute the outcome for. Has shape
+            (n_samples, 2, n_points).
         error: The error grid to compute the outcome for. Has shape (n_samples,
             n_points).
         time_grid: The time grid to compute the outcome for. Has shape (n_points,).
@@ -92,7 +92,7 @@ def _compute_outcome(
 
     """
     slope = _slope_function(time_grid)
-    deterministic_outcome = 1 + predictor * slope
+    deterministic_outcome = predictor[:, 1, :] + predictor[:, 0, :] * slope
     return deterministic_outcome + error
 
 
@@ -126,11 +126,13 @@ def _simulate_predictor(
         rng: The random number generator to use for the simulation.
 
     Returns:
-        The predictor grid. Has shape (n_samples, n_points).
+        The predictor grid. Has shape (n_samples, 2, n_points).
 
     """
     binary_covariate = _simulate_binary_covariate(n_samples=n_samples, rng=rng)
-    return _predictor_function(time_grid=time_grid, binary_covariate=binary_covariate)
+    x = _predictor_function(time_grid=time_grid, binary_covariate=binary_covariate)
+    ones = np.ones_like(x)
+    return np.stack([x, ones], axis=1)
 
 
 def _simulate_binary_covariate(
