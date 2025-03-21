@@ -100,14 +100,14 @@ def _generate_outcome_figure_data() -> dict[str, NDArray[np.float64]]:
     rng = np.random.default_rng(13221)
 
     time_grid = generate_time_grid(n_points=100)
-    stationary_outcomes, _ = simulate_from_model(
+    stationary_data = simulate_from_model(
         n_samples=20,
         time_grid=time_grid,
         dof=15,
         covariance_type=CovarianceType.STATIONARY,
         rng=rng,
     )
-    non_stationary_outcomes, _ = simulate_from_model(
+    non_stationary_data = simulate_from_model(
         n_samples=20,
         time_grid=time_grid,
         dof=15,
@@ -116,6 +116,6 @@ def _generate_outcome_figure_data() -> dict[str, NDArray[np.float64]]:
     )
     return {
         "time_grid": time_grid,
-        "stationary_outcomes": stationary_outcomes.T,
-        "non_stationary_outcomes": non_stationary_outcomes.T,
+        "stationary_outcomes": stationary_data.y.T,
+        "non_stationary_outcomes": non_stationary_data.y.T,
     }

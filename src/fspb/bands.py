@@ -39,7 +39,7 @@ def confidence_band(
     time_grid: NDArray[np.float64],
     interval_cutoffs: NDArray[np.float64],
     significance_level: float = 0.05,
-    degrees_of_freedom: int = 15,
+    dof: int = 15,
     distribution_type: DistributionType | str = "gaussian",
 ) -> Band:
     """Confidence band.
@@ -72,7 +72,7 @@ def confidence_band(
         roughness=roughness,
         time_grid=time_grid,
         distribution_type=distribution_type,
-        degrees_of_freedom=degrees_of_freedom,
+        degrees_of_freedom=dof,
     )
 
     scaling_idx = np.searchsorted(interval_cutoffs[1:-1], time_grid)

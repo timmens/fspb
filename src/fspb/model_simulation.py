@@ -15,6 +15,16 @@ class CovarianceType(Enum):
     NON_STATIONARY = "NonStationary"
 
 
+def parse_covariance_type(covariance_type: CovarianceType | str) -> CovarianceType:
+    """Parse the covariance type."""
+    if not isinstance(covariance_type, CovarianceType):
+        try:
+            covariance_type = CovarianceType[covariance_type.upper()]
+        except ValueError:
+            raise ValueError(f"Invalid covariance type: {covariance_type}")
+    return covariance_type
+
+
 @dataclass
 class SimulationData:
     """The data from a simulation."""
@@ -50,11 +60,7 @@ def simulate_from_model(
     if rng is None:
         rng = np.random.default_rng()
 
-    if not isinstance(covariance_type, CovarianceType):
-        try:
-            covariance_type = CovarianceType[covariance_type.upper()]
-        except ValueError:
-            raise ValueError(f"Invalid covariance type: {covariance_type}")
+    covariance_type = parse_covariance_type(covariance_type)
 
     x = _simulate_predictor(
         time_grid=time_grid,
@@ -72,7 +78,7 @@ def simulate_from_model(
     )
 
     model = ConcurrentLinearModel(
-        intercept=np.zeros_like(time_grid),
+        intercept=np.ones_like(time_grid),
         slope=_slope_function(time_grid),
         x_shape=(n_samples, 2, len(time_grid)),
     )

@@ -104,7 +104,7 @@ class Algorithm(ABC):
         return (
             self._cdf(-x)
             + self._scaling(x) * self.roughness_integrals[interval_index]
-            - self.significance_level / 2 * self.interval_lengths[interval_index]
+            - self.significance_level * self.interval_lengths[interval_index]
         )
 
     def _equation_gradient(self, x: float, interval_index: int) -> float:
