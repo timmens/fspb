@@ -2,7 +2,10 @@ from enum import Enum
 
 import numpy as np
 import scipy as sp
+from dataclasses import dataclass
 from numpy.typing import NDArray
+
+from fspb.linear_model import ConcurrentLinearModel
 
 
 class CovarianceType(Enum):
@@ -12,6 +15,16 @@ class CovarianceType(Enum):
     NON_STATIONARY = "NonStationary"
 
 
+@dataclass
+class SimulationData:
+    """The data from a simulation."""
+
+    y: NDArray[np.float64]
+    x: NDArray[np.float64]
+    time_grid: NDArray[np.float64]
+    model: ConcurrentLinearModel
+
+
 def simulate_from_model(
     n_samples: int,
     time_grid: NDArray[np.float64],
@@ -19,7 +32,7 @@ def simulate_from_model(
     covariance_type: CovarianceType | str,
     length_scale: float = 1,
     rng: np.random.Generator | None = None,
-):
+) -> SimulationData:
     """Simulate from the model.
 
     Args:
@@ -31,8 +44,7 @@ def simulate_from_model(
         rng: The random state to use for the simulation.
 
     Returns:
-        - Outcome: Has shape (n_samples, n_points).
-        - Predictor: Has shape (n_samples, n_points).
+        A SimulationData object.
 
     """
     if rng is None:
@@ -44,7 +56,7 @@ def simulate_from_model(
         except ValueError:
             raise ValueError(f"Invalid covariance type: {covariance_type}")
 
-    predictor = _simulate_predictor(
+    x = _simulate_predictor(
         time_grid=time_grid,
         n_samples=n_samples,
         rng=rng,
@@ -59,41 +71,25 @@ def simulate_from_model(
         length_scale=length_scale,
     )
 
-    outcome = _compute_outcome(
-        predictor=predictor,
-        error=error,
-        time_grid=time_grid,
+    model = ConcurrentLinearModel(
+        intercept=np.zeros_like(time_grid),
+        slope=_slope_function(time_grid),
+        x_shape=(n_samples, 2, len(time_grid)),
     )
 
-    return np.squeeze(outcome), np.squeeze(predictor)
+    y = model.predict(x) + error
+
+    return SimulationData(
+        y=np.squeeze(y),
+        x=np.squeeze(x),
+        time_grid=time_grid,
+        model=model,
+    )
 
 
 # ======================================================================================
 # Simulate Outcome
 # ======================================================================================
-
-
-def _compute_outcome(
-    predictor: NDArray[np.float64],
-    error: NDArray[np.float64],
-    time_grid: NDArray[np.float64],
-) -> NDArray[np.float64]:
-    """Compute the outcome.
-
-    Args:
-        predictor: The predictor grid to compute the outcome for. Has shape
-            (n_samples, 2, n_points).
-        error: The error grid to compute the outcome for. Has shape (n_samples,
-            n_points).
-        time_grid: The time grid to compute the outcome for. Has shape (n_points,).
-
-    Returns:
-        The outcome. Has shape (n_samples, n_points).
-
-    """
-    slope = _slope_function(time_grid)
-    deterministic_outcome = predictor[:, 1, :] + predictor[:, 0, :] * slope
-    return deterministic_outcome + error
 
 
 def _slope_function(time_grid: NDArray[np.float64]) -> NDArray[np.float64]:
@@ -132,7 +128,7 @@ def _simulate_predictor(
     binary_covariate = _simulate_binary_covariate(n_samples=n_samples, rng=rng)
     x = _predictor_function(time_grid=time_grid, binary_covariate=binary_covariate)
     ones = np.ones_like(x)
-    return np.stack([x, ones], axis=1)
+    return np.stack([ones, x], axis=1)
 
 
 def _simulate_binary_covariate(

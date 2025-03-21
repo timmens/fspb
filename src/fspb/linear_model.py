@@ -13,6 +13,10 @@ class ConcurrentLinearModel:
 
     """
 
+    intercept: NDArray[np.float64] | None = None
+    slope: NDArray[np.float64] | None = None
+    x_shape: tuple[int, ...] | None = None
+
     def fit(self, x: NDArray[np.float64], y: NDArray[np.float64]) -> None:
         """Fit the model coefficients."""
         if len(y) != len(x):
@@ -20,7 +24,9 @@ class ConcurrentLinearModel:
         if y.shape[1] != x.shape[2]:
             raise ValueError("y and x must have the same number of time points")
 
-        self.coefs = _fit(y, x)
+        intercept, slope = _fit(y, x)
+        self.intercept = intercept
+        self.slope = slope
         self.x_shape = x.shape
 
     def predict(self, x_new: NDArray[np.float64]) -> NDArray[np.float64]:
@@ -35,13 +41,17 @@ class ConcurrentLinearModel:
             (n_time_points,).
 
         """
+        if self.intercept is None or self.slope is None or self.x_shape is None:
+            raise ValueError("No model information available yet. Fit model.")
+
         if x_new.ndim == 2:
             x_new = x_new[np.newaxis]
 
         if x_new.ndim != 3 or x_new.shape[1:] != self.x_shape[1:]:
             raise ValueError(f"x_new has invalid shape: {x_new.shape}")
 
-        return np.squeeze((x_new * self.coefs).sum(axis=1))
+        pred = self.intercept * x_new[:, 0, :] + self.slope * x_new[:, 1, :]
+        return np.squeeze(pred)
 
 
 def _fit(
