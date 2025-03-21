@@ -5,6 +5,7 @@ from numpy.typing import NDArray
 import numpy as np
 from dataclasses import dataclass
 
+
 from fspb.bands import Band, confidence_band
 from fspb.fair_algorithm import DistributionType
 from fspb.model_simulation import (
