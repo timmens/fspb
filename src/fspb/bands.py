@@ -13,6 +13,18 @@ class Band:
     lower: NDArray[np.float64]
     upper: NDArray[np.float64]
 
+    def contains(self, func: NDArray[np.float64]) -> bool:
+        """Check if the band contains another function.
+
+        Args:
+            func: Has shape (n_time_points, )
+
+        Returns:
+            True if the band contains func, False otherwise.
+
+        """
+        return bool(np.all(func >= self.lower) and np.all(func <= self.upper))
+
 
 # ======================================================================================
 # Confidence bands
@@ -70,6 +82,6 @@ def confidence_band(
 
     return Band(
         estimate=y_pred,
-        lower=y_pred + scalings * sd_diag,
-        upper=y_pred - scalings * sd_diag,
+        lower=y_pred - scalings * sd_diag,
+        upper=y_pred + scalings * sd_diag,
     )
