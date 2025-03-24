@@ -28,7 +28,7 @@ class Scenario:
         return [f.name for f in fields(self)]
 
     def to_str(self) -> str:
-        return f"n={self.n_samples}--d={self.dof}--c={self.covariance_type}"
+        return f"n={self.n_samples}-d={self.dof}-c={self.covariance_type}"
 
     def to_dict(self) -> ScenarioDict:
         return ScenarioDict(
@@ -39,7 +39,7 @@ class Scenario:
 
     @classmethod
     def from_str(cls, string: str) -> Scenario:
-        n_samples, dof, covariance_type = [s.split("=")[1] for s in string.split("--")]
+        n_samples, dof, covariance_type = [s.split("=")[1] for s in string.split("-")]
         if covariance_type not in ("stationary", "non_stationary"):
             raise ValueError(f"Unknown covariance type: {covariance_type}")
         return Scenario(int(n_samples), int(dof), covariance_type)  # type: ignore[arg-type]
