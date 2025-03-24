@@ -99,7 +99,7 @@ def _generate_outcome_figure_data() -> dict[str, NDArray[np.float64]]:
     """Generate data for Figure XXX for paper."""
     rng = np.random.default_rng(13221)
 
-    time_grid = generate_time_grid(n_points=100)
+    time_grid = generate_time_grid(n_points=101)
     stationary_data = simulate_from_model(
         n_samples=20,
         time_grid=time_grid,

@@ -96,7 +96,7 @@ def monte_carlo_simulation(
 
     """
     if time_grid is None:
-        time_grid = generate_time_grid(n_points=100)
+        time_grid = generate_time_grid(n_points=101)
 
     if interval_cutoffs is None:
         interval_cutoffs = np.linspace(0, 1, 4)  # type: ignore[assignment]

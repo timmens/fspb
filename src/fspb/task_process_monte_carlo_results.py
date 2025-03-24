@@ -6,7 +6,7 @@ from pytask import Product
 import pytask
 from fspb.process_monte_carlo_results import process_monte_carlo_results
 from fspb.monte_carlo import SingleSimulationResult, MonteCarloSimulationResult
-import numpy as np
+import json
 
 ALL_RESULTS_PATHS = [
     BLD / "monte_carlo" / "raw" / f"{scenario.to_str()}.pkl"
@@ -26,7 +26,7 @@ def task_process_monte_carlo_study(
 
 for result_path in ALL_RESULTS_PATHS:
     scenario = Scenario.from_str(result_path.stem)
-    product_path = BLD / "monte_carlo" / "R" / f"{scenario.to_str()}.npz"
+    product_path = BLD / "monte_carlo" / "R" / f"{scenario.to_str()}.json"
 
     @pytask.task(id=scenario.to_str())
     def task_prepare_simulation_data_for_R(
@@ -36,18 +36,16 @@ for result_path in ALL_RESULTS_PATHS:
         mc_result: MonteCarloSimulationResult = pd.read_pickle(result_path)
         results: list[SingleSimulationResult] = mc_result.simulation_results
 
-        y = [r.simulation_data.y for r in results]
-        x = [r.simulation_data.x for r in results]
-        time_grid = [r.simulation_data.time_grid for r in results]
+        data = []
+        for r in results:
+            item = {
+                "y": r.simulation_data.y.tolist(),
+                "x": r.simulation_data.x.tolist(),
+                "time_grid": r.simulation_data.time_grid.tolist(),
+                "new_y": r.new_data.y.tolist(),
+                "new_x": r.new_data.x.tolist(),
+            }
+            data.append(item)
 
-        new_y = [r.new_data.y for r in results]
-        new_x = [r.new_data.x for r in results]
-
-        np.savez_compressed(
-            file=product_path,
-            y=y,
-            x=x,
-            time_grid=time_grid,
-            new_y=new_y,
-            new_x=new_x,
-        )
+        with open(product_path, "w") as file:
+            json.dump(data, file)
