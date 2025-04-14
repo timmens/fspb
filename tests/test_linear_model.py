@@ -29,8 +29,8 @@ def test_predict_2d():
     time_grid = np.linspace(0, 1, 3)
     model = ConcurrentLinearModel(
         intercept=np.zeros_like(time_grid),
-        slope=np.arange(len(time_grid)),
-        x_shape=(np.nan, 2, len(time_grid)),
+        slope=np.arange(len(time_grid), dtype=np.float64),
+        x_shape=(0, 2, len(time_grid)),
     )
 
     x_new = np.ones((2, len(time_grid)))
@@ -43,8 +43,8 @@ def test_predict_3d():
     time_grid = np.linspace(0, 1, 3)
     model = ConcurrentLinearModel(
         intercept=np.zeros_like(time_grid),
-        slope=np.arange(len(time_grid)),
-        x_shape=(np.nan, 2, len(time_grid)),
+        slope=np.arange(len(time_grid), dtype=np.float64),
+        x_shape=(0, 2, len(time_grid)),
     )
 
     x_new_1 = np.ones((2, len(time_grid)))

@@ -6,7 +6,7 @@ from fspb.model_simulation import generate_time_grid
 
 
 def plot_sample_paths(
-    paths: NDArray[np.float64], path_name: str = ""
+    paths: NDArray[np.floating], path_name: str = ""
 ) -> tuple[plt.Figure, plt.Axes]:
     """Plot sample paths.
 

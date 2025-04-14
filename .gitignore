@@ -10,6 +10,9 @@ bld
 __pycache__/
 **/sandbox.ipynb
 
+# vscode
+.vscode/
+
 # R
 .RData
 .Rhistory

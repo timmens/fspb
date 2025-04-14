@@ -25,7 +25,7 @@ class MonteCarloSimulationResult:
     signficance_level: float
 
     @property
-    def coverage(self) -> NDArray[np.float64]:
+    def coverage(self) -> NDArray[np.floating]:
         """The coverage of the Monte Carlo simulation."""
         true_ys = [
             result.new_data.model.predict(result.new_data.x)
@@ -38,7 +38,7 @@ class MonteCarloSimulationResult:
         return np.array(contained, dtype=np.int8).mean()
 
     @property
-    def maximum_width_statistic(self) -> NDArray[np.float64]:
+    def maximum_width_statistic(self) -> NDArray[np.floating]:
         """The maximum width statistic of the Monte Carlo simulation."""
         widths = [
             result.band.maximum_width_statistic for result in self.simulation_results
@@ -46,7 +46,7 @@ class MonteCarloSimulationResult:
         return np.array(widths).mean()
 
     @property
-    def interval_score(self) -> NDArray[np.float64]:
+    def interval_score(self) -> NDArray[np.floating]:
         """The interval scores of the Monte Carlo simulation."""
         true_ys = [
             result.new_data.model.predict(result.new_data.x)
@@ -73,14 +73,14 @@ class SimulationOptions(TypedDict):
     dof: int
     covariance_type: CovarianceType | str
     length_scale: float
-    time_grid: NDArray[np.float64]
+    time_grid: NDArray[np.floating]
 
 
 class BandOptions(TypedDict):
-    interval_cutoffs: NDArray[np.float64]
+    interval_cutoffs: NDArray[np.floating]
     significance_level: float
     distribution_type: DistributionType | str
-    time_grid: NDArray[np.float64]
+    time_grid: NDArray[np.floating]
     dof: int
 
 
@@ -92,10 +92,10 @@ def monte_carlo_simulation(
     dof: int = 15,
     covariance_type: CovarianceType | str = CovarianceType.STATIONARY,
     length_scale: float = 0.1,
-    time_grid: NDArray[np.float64] | None = None,
+    time_grid: NDArray[np.floating] | None = None,
     seed: int | None = None,
     # Confidence band parameters
-    interval_cutoffs: NDArray[np.float64] | None = None,
+    interval_cutoffs: NDArray[np.floating] | None = None,
     significance_level: float = 0.05,
     distribution_type: DistributionType | str = DistributionType.GAUSSIAN,
     # Parallelization parameters
@@ -121,10 +121,10 @@ def monte_carlo_simulation(
         time_grid = generate_time_grid(n_points=101)
 
     if interval_cutoffs is None:
-        interval_cutoffs = np.linspace(0, 1, 4)  # type: ignore[assignment]
+        interval_cutoffs = np.linspace(0, 1, 4)
 
     band_options = BandOptions(
-        interval_cutoffs=interval_cutoffs,  # type: ignore[typeddict-item]
+        interval_cutoffs=interval_cutoffs,
         significance_level=significance_level,
         distribution_type=distribution_type,
         time_grid=time_grid,
@@ -166,7 +166,7 @@ def monte_carlo_simulation(
 
 def _single_simulation(
     n_samples: int,
-    time_grid: NDArray[np.float64],
+    time_grid: NDArray[np.floating],
     dof: int,
     covariance_type: CovarianceType | str,
     length_scale: float,

@@ -27,7 +27,7 @@ def task_visualize_outcome(
     fig.savefig(path_figure)
 
 
-def _create_outcome_figure(data: dict[str, NDArray[np.float64]]) -> plt.Figure:
+def _create_outcome_figure(data: dict[str, NDArray[np.floating]]) -> plt.Figure:
     """Create figure showing stationary and non-stationary outcomes."""
     plt.style.use("seaborn-v0_8-whitegrid")
     plt.rc("text", usetex=True)
@@ -95,7 +95,7 @@ def _create_outcome_figure(data: dict[str, NDArray[np.float64]]) -> plt.Figure:
     return fig
 
 
-def _generate_outcome_figure_data() -> dict[str, NDArray[np.float64]]:
+def _generate_outcome_figure_data() -> dict[str, NDArray[np.floating]]:
     """Generate data for Figure XXX for paper."""
     rng = np.random.default_rng(13221)
 

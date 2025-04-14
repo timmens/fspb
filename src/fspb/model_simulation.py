@@ -29,15 +29,15 @@ def parse_covariance_type(covariance_type: CovarianceType | str) -> CovarianceTy
 class SimulationData:
     """The data from a simulation."""
 
-    y: NDArray[np.float64]
-    x: NDArray[np.float64]
-    time_grid: NDArray[np.float64]
+    y: NDArray[np.floating]
+    x: NDArray[np.floating]
+    time_grid: NDArray[np.floating]
     model: ConcurrentLinearModel
 
 
 def simulate_from_model(
     n_samples: int,
-    time_grid: NDArray[np.float64],
+    time_grid: NDArray[np.floating],
     dof: int,
     covariance_type: CovarianceType | str,
     length_scale: float = 1,
@@ -98,7 +98,7 @@ def simulate_from_model(
 # ======================================================================================
 
 
-def _slope_function(time_grid: NDArray[np.float64]) -> NDArray[np.float64]:
+def _slope_function(time_grid: NDArray[np.floating]) -> NDArray[np.floating]:
     """Compute the slope function.
 
     Args:
@@ -117,8 +117,8 @@ def _slope_function(time_grid: NDArray[np.float64]) -> NDArray[np.float64]:
 
 
 def _simulate_predictor(
-    time_grid: NDArray[np.float64], n_samples: int, rng: np.random.Generator
-) -> NDArray[np.float64]:
+    time_grid: NDArray[np.floating], n_samples: int, rng: np.random.Generator
+) -> NDArray[np.floating]:
     """Compute the predictor grid.
 
     Args:
@@ -144,8 +144,8 @@ def _simulate_binary_covariate(
 
 
 def _predictor_function(
-    time_grid: NDArray[np.float64], binary_covariate: NDArray[np.int_]
-) -> NDArray[np.float64]:
+    time_grid: NDArray[np.floating], binary_covariate: NDArray[np.int_]
+) -> NDArray[np.floating]:
     """Compute the predictor variable, given the binary covariate B.
 
     Args:
@@ -170,12 +170,12 @@ def _predictor_function(
 
 def _simulate_error(
     n_samples: int,
-    time_grid: NDArray[np.float64],
+    time_grid: NDArray[np.floating],
     dof: int,
     covariance_type: CovarianceType,
     rng: np.random.Generator,
     length_scale: float = 1,
-) -> NDArray[np.float64]:
+) -> NDArray[np.floating]:
     """Simulate the error processes from a multivariate Student's t distribution.
 
     For each sample:
@@ -210,11 +210,11 @@ def _simulate_error(
 
 
 def _matern_covariance(
-    time_grid: NDArray[np.float64],
+    time_grid: NDArray[np.floating],
     covariance_type: CovarianceType,
     length_scale: float = 1,
     sigma: float = 1 / 4,
-) -> NDArray[np.float64]:
+) -> NDArray[np.floating]:
     """Compute the Matern covariance matrix for the given time grid.
 
     Args:
@@ -259,6 +259,6 @@ def _matern_covariance(
 # ======================================================================================
 
 
-def generate_time_grid(n_points: int) -> NDArray[np.float64]:
+def generate_time_grid(n_points: int) -> NDArray[np.floating]:
     """Generate a time grid between 0 and 1."""
     return np.linspace(0, 1, n_points, dtype=np.float64)

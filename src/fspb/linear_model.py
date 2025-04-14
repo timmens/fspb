@@ -13,11 +13,12 @@ class ConcurrentLinearModel:
 
     """
 
-    intercept: NDArray[np.float64] | None = None
-    slope: NDArray[np.float64] | None = None
-    x_shape: tuple[int, ...] | None = None
+    intercept: NDArray[np.floating] = np.empty(0)
+    slope: NDArray[np.floating] = np.empty(0)
+    x_shape: tuple[int, ...] = tuple()
+    is_fitted: bool = False
 
-    def fit(self, x: NDArray[np.float64], y: NDArray[np.float64]) -> None:
+    def fit(self, x: NDArray[np.floating], y: NDArray[np.floating]) -> None:
         """Fit the model coefficients."""
         if len(y) != len(x):
             raise ValueError("y and x must have the same number of samples")
@@ -28,8 +29,9 @@ class ConcurrentLinearModel:
         self.intercept = intercept
         self.slope = slope
         self.x_shape = x.shape
+        self.is_fitted = True
 
-    def predict(self, x_new: NDArray[np.float64]) -> NDArray[np.float64]:
+    def predict(self, x_new: NDArray[np.floating]) -> NDArray[np.floating]:
         """Predict the outcome for new data.
 
         Args:
@@ -41,6 +43,9 @@ class ConcurrentLinearModel:
             (n_time_points,).
 
         """
+        if not self.is_fitted:
+            raise ValueError("Model is not fitted yet. Fit model first.")
+
         if self.intercept is None or self.slope is None or self.x_shape is None:
             raise ValueError("No model information available yet. Fit model.")
 
@@ -55,9 +60,9 @@ class ConcurrentLinearModel:
 
 
 def _fit(
-    y: NDArray[np.float64],
-    x: NDArray[np.float64],
-) -> NDArray[np.float64]:
+    y: NDArray[np.floating],
+    x: NDArray[np.floating],
+) -> NDArray[np.floating]:
     """Fit functional concurrent linear model.
 
     Args:

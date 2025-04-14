@@ -16,16 +16,16 @@ class DistributionType(Enum):
 
 def fair_critical_value_selection(
     significance_level: float,
-    interval_cutoffs: NDArray[np.float64],
-    time_grid: NDArray[np.float64],
-    roughness: NDArray[np.float64],
+    interval_cutoffs: NDArray[np.floating],
+    time_grid: NDArray[np.floating],
+    roughness: NDArray[np.floating],
     distribution_type: DistributionType | str,
     degrees_of_freedom: int | None = None,
     method: str = "brentq",
     n_cores: int = 1,
     *,
     raise_on_error: bool = True,
-) -> NDArray[np.float64]:
+) -> NDArray[np.floating]:
     if not isinstance(distribution_type, DistributionType):
         try:
             distribution_type = DistributionType[distribution_type.upper()]
@@ -75,9 +75,9 @@ def fair_critical_value_selection(
 @dataclass(frozen=True)
 class Algorithm(ABC):
     significance_level: float
-    interval_cutoffs: NDArray[np.float64]
-    roughness_integrals: NDArray[np.float64]
-    interval_lengths: NDArray[np.float64]
+    interval_cutoffs: NDArray[np.floating]
+    roughness_integrals: NDArray[np.floating]
+    interval_lengths: NDArray[np.floating]
 
     def solve(self, method: str = "brentq", n_cores: int = 1) -> list[RootResults]:
         interval_ids = range(len(self.interval_cutoffs) - 1)
@@ -190,26 +190,29 @@ class StudentTAlgorithm(Algorithm):
 
 
 def _calculate_piecewise_integrals(
-    interval_cutoffs: NDArray[np.float64],
-    values: NDArray[np.float64],
-    time_grid: NDArray[np.float64],
-) -> NDArray[np.float64]:
-    integrals = np.empty(len(interval_cutoffs) - 1)
+    interval_cutoffs: NDArray[np.floating],
+    values: NDArray[np.floating],
+    time_grid: NDArray[np.floating],
+) -> NDArray[np.floating]:
+    """Compute the integral over subintervals using the Simpson rule.
 
+    Args:
+        interval_cutoffs: array of increasing cutoff points defining subintervals.
+        values: array of function values sampled at `time_grid`.
+        time_grid: array of time points corresponding to `values`.
+
+    Returns:
+        Array of integrals over each subinterval.
+
+    """
+    integrals = np.empty(len(interval_cutoffs) - 1)
     idx = np.searchsorted(time_grid, interval_cutoffs)
 
-    for i in range(len(interval_cutoffs) - 2):
-        # include the right boundary of the interval for the last interval
-        if i == len(interval_cutoffs) - 2:
-            include_right_boundary = 1
-        else:
-            include_right_boundary = 0
-
-        _func_in_interval = values[idx[i] : idx[i + 2] + include_right_boundary]
-        _time_in_interval = time_grid[idx[i] : idx[i + 2] + include_right_boundary]
-
-        interval_integral = simpson(_func_in_interval, _time_in_interval)
-
-        integrals[i] = interval_integral
+    for i in range(len(integrals)):
+        left = idx[i]
+        right = idx[i + 1] + (1 if i == len(integrals) - 1 else 0)
+        f_segment = values[left:right]
+        t_segment = time_grid[left:right]
+        integrals[i] = simpson(f_segment, t_segment)
 
     return integrals

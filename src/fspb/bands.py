@@ -9,11 +9,11 @@ from fspb.covariance import calculate_covariance_on_grid
 
 @dataclass
 class Band:
-    estimate: NDArray[np.float64]
-    lower: NDArray[np.float64]
-    upper: NDArray[np.float64]
+    estimate: NDArray[np.floating]
+    lower: NDArray[np.floating]
+    upper: NDArray[np.floating]
 
-    def contains(self, func: NDArray[np.float64]) -> bool:
+    def contains(self, func: NDArray[np.floating]) -> bool:
         """Check if the band contains another function.
 
         Args:
@@ -36,7 +36,7 @@ class Band:
         return np.max(self.upper - self.lower)
 
     def interval_score(
-        self, func: NDArray[np.float64], signifance_level: float
+        self, func: NDArray[np.floating], signifance_level: float
     ) -> float:
         """Calculate the interval score of the band.
 
@@ -64,12 +64,12 @@ class Band:
 
 
 def confidence_band(
-    y: NDArray[np.float64],
-    x: NDArray[np.float64],
-    x_new: NDArray[np.float64],
+    y: NDArray[np.floating],
+    x: NDArray[np.floating],
+    x_new: NDArray[np.floating],
     *,
-    time_grid: NDArray[np.float64],
-    interval_cutoffs: NDArray[np.float64],
+    time_grid: NDArray[np.floating],
+    interval_cutoffs: NDArray[np.floating],
     significance_level: float = 0.05,
     dof: int = 15,
     distribution_type: DistributionType | str = "gaussian",

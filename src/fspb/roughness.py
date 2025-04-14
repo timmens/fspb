@@ -5,12 +5,12 @@ from typing import Any
 
 
 def calculate_roughness_on_grid(
-    cov: NDArray[np.float64],
-    time_grid: NDArray[np.float64],
+    cov: NDArray[np.floating],
+    time_grid: NDArray[np.floating],
     *,
     smooth: bool = True,
     smooth_kwargs: dict[str, Any] | None = None,
-) -> NDArray[np.float64]:
+) -> NDArray[np.floating]:
     """Calculate the roughness function on a grid.
 
     Args:
@@ -41,7 +41,7 @@ def calculate_roughness_on_grid(
     return np.sqrt(np.diag(corr_dxdy))
 
 
-def _cov_to_corr(cov: NDArray[np.float64]) -> NDArray[np.float64]:
+def _cov_to_corr(cov: NDArray[np.floating]) -> NDArray[np.floating]:
     standard_errors = np.sqrt(np.diag(cov))
     corr = cov.copy()
     corr /= standard_errors.reshape(1, -1)
