@@ -20,7 +20,7 @@ def parse_covariance_type(covariance_type: CovarianceType | str) -> CovarianceTy
     if not isinstance(covariance_type, CovarianceType):
         try:
             covariance_type = CovarianceType[covariance_type.upper()]
-        except ValueError:
+        except KeyError:
             raise ValueError(f"Invalid covariance type: {covariance_type}")
     return covariance_type
 
@@ -85,9 +85,15 @@ def simulate_from_model(
 
     y = model.predict(x) + error
 
+    if y.shape[0] == 1:
+        y = np.squeeze(y, axis=0)
+
+    if x.shape[0] == 1:
+        x = np.squeeze(x, axis=0)
+
     return SimulationData(
-        y=np.squeeze(y),
-        x=np.squeeze(x),
+        y=y,
+        x=x,
         time_grid=time_grid,
         model=model,
     )
