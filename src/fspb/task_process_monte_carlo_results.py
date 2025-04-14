@@ -66,7 +66,7 @@ def process_monte_carlo_results(
         scenarios: The scenarios of the Monte Carlo simulation.
 
     """
-    processed: list[pd.Series] = []
+    processed: list[pd.Series[pd.Float64Dtype]] = []
     for result, scenario in zip(results, scenarios):
         sr = pd.Series(scenario.to_dict())
         sr["coverage"] = result.coverage

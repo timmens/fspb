@@ -75,4 +75,6 @@ repos:
           - scipy-stubs
           - matplotlib
           - pytask
+          - pytest
+          - scikit-learn
         args: [--config=pyproject.toml]
