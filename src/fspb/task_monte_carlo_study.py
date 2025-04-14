@@ -18,10 +18,10 @@ for scenario in ALL_SCENARIOS:
         scenario: Scenario = scenario,
     ) -> None:
         results = monte_carlo_simulation(
-            n_simulations=10,
+            n_simulations=500,
             **scenario.to_dict(),
-            significance_level=0.05,
-            n_cores=1,
+            significance_level=0.1,
+            n_cores=10,
             seed=None,
         )
         pd.to_pickle(results, result_path)

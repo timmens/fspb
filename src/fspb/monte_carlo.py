@@ -22,9 +22,10 @@ class MonteCarloSimulationResult:
     """The result of a Monte Carlo simulation."""
 
     simulation_results: list[SingleSimulationResult]
+    signficance_level: float
 
     @property
-    def coverage(self) -> float:
+    def coverage(self) -> NDArray[np.float64]:
         """The coverage of the Monte Carlo simulation."""
         true_ys = [
             result.new_data.model.predict(result.new_data.x)
@@ -35,6 +36,27 @@ class MonteCarloSimulationResult:
             for result, true_y in zip(self.simulation_results, true_ys)
         ]
         return np.array(contained, dtype=np.int8).mean()
+
+    @property
+    def maximum_width_statistic(self) -> NDArray[np.float64]:
+        """The maximum width statistic of the Monte Carlo simulation."""
+        widths = [
+            result.band.maximum_width_statistic for result in self.simulation_results
+        ]
+        return np.array(widths).mean()
+
+    @property
+    def interval_score(self) -> NDArray[np.float64]:
+        """The interval scores of the Monte Carlo simulation."""
+        true_ys = [
+            result.new_data.model.predict(result.new_data.x)
+            for result in self.simulation_results
+        ]
+        scores = [
+            result.band.interval_score(true_y, signifance_level=self.signficance_level)
+            for result, true_y in zip(self.simulation_results, true_ys)
+        ]
+        return np.array(scores).mean()
 
 
 @dataclass
@@ -139,7 +161,7 @@ def monte_carlo_simulation(
             for rng in rng_per_simulation
         )
 
-    return MonteCarloSimulationResult(results)
+    return MonteCarloSimulationResult(results, signficance_level=significance_level)
 
 
 def _single_simulation(

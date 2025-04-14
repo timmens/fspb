@@ -25,6 +25,38 @@ class Band:
         """
         return bool(np.all(func >= self.lower) and np.all(func <= self.upper))
 
+    @property
+    def maximum_width_statistic(self) -> float:
+        """Calculate the maximum width statistic of the band.
+
+        Returns:
+            The maximum width statistic of the band.
+
+        """
+        return np.max(self.upper - self.lower)
+
+    def interval_score(
+        self, func: NDArray[np.float64], signifance_level: float
+    ) -> float:
+        """Calculate the interval score of the band.
+
+        Args:
+            func: Has shape (n_time_points, )
+            signifance_level: The significance level of the band.
+
+        Returns:
+            The interval score of the band.
+
+        """
+        maximum_width_statistic = self.maximum_width_statistic
+        maximum_low_to_func = np.max((self.lower - func) * (self.lower < func))
+        maximum_func_to_high = np.max((self.upper - func) * (self.upper > func))
+        return (
+            maximum_width_statistic
+            + signifance_level / 2 * maximum_low_to_func
+            + signifance_level / 2 * maximum_func_to_high
+        )
+
 
 # ======================================================================================
 # Confidence bands

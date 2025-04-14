@@ -4,7 +4,6 @@ from typing import Annotated
 import pandas as pd
 from pytask import Product
 import pytask
-from fspb.process_monte_carlo_results import process_monte_carlo_results
 from fspb.monte_carlo import SingleSimulationResult, MonteCarloSimulationResult
 import json
 
@@ -49,3 +48,30 @@ for result_path in ALL_RESULTS_PATHS:
 
         with open(product_path, "w") as file:
             json.dump(data, file)
+
+
+# ======================================================================================
+# Processing code
+# ======================================================================================
+
+
+def process_monte_carlo_results(
+    results: list[MonteCarloSimulationResult],
+    scenarios: list[Scenario],
+) -> pd.DataFrame:
+    """Process the results of a Monte Carlo simulation.
+
+    Args:
+        results: The results of a Monte Carlo simulation.
+        scenarios: The scenarios of the Monte Carlo simulation.
+
+    """
+    processed: list[pd.Series] = []
+    for result, scenario in zip(results, scenarios):
+        sr = pd.Series(scenario.to_dict())
+        sr["coverage"] = result.coverage
+        sr["maximum_width_statistic"] = result.maximum_width_statistic
+        sr["interval_score"] = result.interval_score
+        processed.append(sr)
+    index_cols = scenarios[0]._fields()
+    return pd.concat(processed, axis=1).T.set_index(index_cols)
