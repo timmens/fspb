@@ -13,3 +13,4 @@ __pycache__/
 # R
 .RData
 .Rhistory
+.Rproj.user
