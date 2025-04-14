@@ -49,8 +49,8 @@ class Band:
 
         """
         maximum_width_statistic = self.maximum_width_statistic
-        maximum_low_to_func = np.max((self.lower - func) * (self.lower < func))
-        maximum_func_to_high = np.max((self.upper - func) * (self.upper > func))
+        maximum_low_to_func = np.max((self.lower - func) * (func < self.lower))
+        maximum_func_to_high = np.max((self.upper - func) * (func > self.upper))
         return (
             maximum_width_statistic
             + signifance_level / 2 * maximum_low_to_func
