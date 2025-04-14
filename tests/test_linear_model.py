@@ -23,6 +23,27 @@ def test_fit(linear_data):
     assert model.x_shape == x.shape
     assert np.allclose(model.intercept, 3, atol=0.01)
     assert np.allclose(model.slope, 2, atol=0.01)
+    assert model.is_fitted
+
+
+def test_is_fitted():
+    assert not ConcurrentLinearModel().is_fitted
+    assert ConcurrentLinearModel(
+        intercept=np.zeros(1),
+        slope=np.zeros(1),
+        x_shape=(0, 2, 1),
+    ).is_fitted
+    assert not ConcurrentLinearModel(
+        intercept=np.zeros(1),
+        slope=np.zeros(1),
+        x_shape=tuple(),
+    ).is_fitted
+    assert not ConcurrentLinearModel(
+        intercept=np.zeros(1), slope=np.array([np.nan]), x_shape=(1, 2)
+    ).is_fitted
+    assert not ConcurrentLinearModel(
+        intercept=np.array([np.nan]), slope=np.ones(2), x_shape=(1, 2)
+    ).is_fitted
 
 
 def test_predict_2d():

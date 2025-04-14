@@ -1,6 +1,6 @@
 import numpy as np
 from numpy.typing import NDArray
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -13,10 +13,9 @@ class ConcurrentLinearModel:
 
     """
 
-    intercept: NDArray[np.floating] = np.empty(0)
-    slope: NDArray[np.floating] = np.empty(0)
+    intercept: NDArray[np.floating] = field(default_factory=lambda: np.array([np.nan]))
+    slope: NDArray[np.floating] = field(default_factory=lambda: np.array([np.nan]))
     x_shape: tuple[int, ...] = tuple()
-    is_fitted: bool = False
 
     def fit(self, x: NDArray[np.floating], y: NDArray[np.floating]) -> None:
         """Fit the model coefficients."""
@@ -29,7 +28,6 @@ class ConcurrentLinearModel:
         self.intercept = intercept
         self.slope = slope
         self.x_shape = x.shape
-        self.is_fitted = True
 
     def predict(self, x_new: NDArray[np.floating]) -> NDArray[np.floating]:
         """Predict the outcome for new data.
@@ -57,6 +55,15 @@ class ConcurrentLinearModel:
 
         pred = self.intercept * x_new[:, 0, :] + self.slope * x_new[:, 1, :]
         return np.squeeze(pred)
+
+    @property
+    def is_fitted(self) -> bool:
+        """Check if the model is fitted."""
+        return not (
+            np.isnan(self.intercept).any()
+            or np.isnan(self.slope).any()
+            or not self.x_shape
+        )
 
 
 def _fit(

@@ -23,6 +23,14 @@ def task_process_monte_carlo_study(
     processed.to_pickle(processed_path)
 
 
+def task_processed_results_to_markdown(
+    processed_path: Path = BLD / "monte_carlo" / "processed.pkl",
+    markdown_path: Annotated[Path, Product] = BLD / "monte_carlo" / "processed.md",
+) -> None:
+    results = pd.read_pickle(processed_path)
+    results.to_markdown(markdown_path)
+
+
 for result_path in ALL_RESULTS_PATHS:
     scenario = Scenario.from_str(result_path.stem)
     product_path = BLD / "monte_carlo" / "R" / f"{scenario.to_str()}.json"

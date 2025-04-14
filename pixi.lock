@@ -318,6 +318,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/sqlalchemy-2.0.39-py313h536fd9c_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/stack_data-0.6.3-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/sysroot_linux-64-2.17-h0157908_18.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/tabulate-0.9.0-pyhd8ed1ab_2.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/terminado-0.18.1-pyh0d859eb_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/threadpoolctl-3.6.0-pyhecae5ae_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/tinycss2-1.4.0-pyhd8ed1ab_0.conda
@@ -1092,7 +1093,7 @@ packages:
 - pypi: .
   name: fspb
   version: 0.1.0
-  sha256: 224abe09f06bd0b373176132b3ce806dd41d82bd0e51d3107e40c75df0383af7
+  sha256: 534c2cb2513a3ad9d1ea47ebb54454b3404a6e321c1a9a2c191a54d838530a2a
   requires_python: '>=3.13'
   editable: true
 - conda: https://conda.anaconda.org/conda-forge/noarch/fsspec-2025.3.0-pyhd8ed1ab_0.conda
@@ -4607,6 +4608,17 @@ packages:
   requires_dist:
   - pyreadline3 ; sys_platform == 'win32'
   requires_python: '>=3.8'
+- conda: https://conda.anaconda.org/conda-forge/noarch/tabulate-0.9.0-pyhd8ed1ab_2.conda
+  sha256: 090023bddd40d83468ef86573976af8c514f64119b2bd814ee63a838a542720a
+  md5: 959484a66b4b76befcddc4fa97c95567
+  depends:
+  - python >=3.9
+  license: MIT
+  license_family: MIT
+  purls:
+  - pkg:pypi/tabulate?source=hash-mapping
+  size: 37554
+  timestamp: 1733589854804
 - conda: https://conda.anaconda.org/conda-forge/noarch/terminado-0.18.1-pyh0d859eb_0.conda
   sha256: b300557c0382478cf661ddb520263508e4b3b5871b471410450ef2846e8c352c
   md5: efba281bbdae5f6b0a1d53c6d4a97c93
