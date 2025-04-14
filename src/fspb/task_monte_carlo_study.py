@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Annotated
 from pytask import Product
 import pandas as pd
-from fspb.config import ALL_SCENARIOS
+from fspb.config import ALL_SCENARIOS, Scenario
 
 
 for scenario in ALL_SCENARIOS:
@@ -15,12 +15,13 @@ for scenario in ALL_SCENARIOS:
     def task_run_monte_carlo_study(
         _script: Path = SRC / "monte_carlo.py",
         result_path: Annotated[Path, Product] = result_path,
+        scenario: Scenario = scenario,
     ) -> None:
         results = monte_carlo_simulation(
-            n_simulations=100,
+            n_simulations=10,
             **scenario.to_dict(),
             significance_level=0.05,
-            n_cores=10,
+            n_cores=1,
             seed=None,
         )
         pd.to_pickle(results, result_path)
