@@ -35,6 +35,7 @@ for result_path in ALL_RESULTS_PATHS:
     scenario = Scenario.from_str(result_path.stem)
     product_path = BLD / "monte_carlo" / "R" / f"{scenario.to_str()}.json"
 
+    @pytask.mark.skip(reason="Slow.")
     @pytask.task(id=scenario.to_str())
     def task_prepare_simulation_data_for_R(
         result_path: Path = result_path,
@@ -46,9 +47,9 @@ for result_path in ALL_RESULTS_PATHS:
         data = []
         for r in results:
             item = {
-                "y": r.simulation_data.y.tolist(),
-                "x": r.simulation_data.x.tolist(),
-                "time_grid": r.simulation_data.time_grid.tolist(),
+                "y": r.data.y.tolist(),
+                "x": r.data.x.tolist(),
+                "time_grid": r.data.time_grid.tolist(),
                 "new_y": r.new_data.y.tolist(),
                 "new_x": r.new_data.x.tolist(),
             }

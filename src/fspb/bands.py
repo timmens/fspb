@@ -1,10 +1,13 @@
+from __future__ import annotations
+
 import numpy as np
 from numpy.typing import NDArray
 from dataclasses import dataclass
 from fspb.linear_model import ConcurrentLinearModel
 from fspb.roughness import calculate_roughness_on_grid
 from fspb.fair_algorithm import fair_critical_value_selection, DistributionType
-from fspb.covariance import calculate_covariance_on_grid
+from fspb.covariance import calculate_covariance, dof_estimate
+from fspb.config import BandType
 
 
 @dataclass
@@ -57,63 +60,64 @@ class Band:
             + signifance_level / 2 * maximum_func_to_high
         )
 
+    @classmethod
+    def fit(
+        cls,
+        y: NDArray[np.floating],
+        x: NDArray[np.floating],
+        x_new: NDArray[np.floating],
+        *,
+        band_type: BandType,
+        time_grid: NDArray[np.floating],
+        interval_cutoffs: NDArray[np.floating],
+        significance_level: float,
+        distribution_type: DistributionType,
+    ) -> Band:
+        model = ConcurrentLinearModel()
+        model.fit(x, y)
 
-# ======================================================================================
-# Confidence bands
-# ======================================================================================
+        residuals = y - model.predict(x)
 
+        covariance = calculate_covariance(
+            residuals,
+            x=x,
+            x_new=x_new,
+            band_type=band_type,
+        )
 
-def confidence_band(
-    y: NDArray[np.floating],
-    x: NDArray[np.floating],
-    x_new: NDArray[np.floating],
-    *,
-    time_grid: NDArray[np.floating],
-    interval_cutoffs: NDArray[np.floating],
-    significance_level: float = 0.05,
-    dof: int = 15,
-    distribution_type: DistributionType | str = "gaussian",
-) -> Band:
-    """Confidence band.
+        dof_hat = dof_estimate(residuals)
 
-    Args:
-        y: Has shape (n_samples, n_time_points)
-        x: Has shape (n_samples, n_time_points)
+        roughness = calculate_roughness_on_grid(
+            cov=covariance,
+            time_grid=time_grid,
+        )
 
-    Returns:
-        Confidence band.
+        critical_value_per_interval = fair_critical_value_selection(
+            significance_level=significance_level,
+            interval_cutoffs=interval_cutoffs,
+            roughness=roughness,
+            time_grid=time_grid,
+            distribution_type=distribution_type,
+            degrees_of_freedom=dof_hat,
+        )
 
-    """
-    model = ConcurrentLinearModel()
-    model.fit(x, y)
+        # Critical values are defined per interval sesction, so we need to map the
+        # values over the time grid interval.
+        scaling_idx = np.searchsorted(interval_cutoffs[1:-1], time_grid)
+        critical_values = critical_value_per_interval[scaling_idx]
 
-    residuals = y - model.predict(x)
+        if band_type == BandType.CONFIDENCE:
+            scaling = critical_values / np.sqrt(len(y))
+        elif band_type == BandType.PREDICTION:
+            scaling = critical_values
+        else:
+            raise ValueError(f"Unknown band type: {band_type}")
 
-    covariance = calculate_covariance_on_grid(residuals, x=x, x_new=x_new)
+        y_pred = model.predict(x_new)
+        sd_diag = np.sqrt(np.diag(covariance))
 
-    roughness = calculate_roughness_on_grid(
-        cov=covariance,
-        time_grid=time_grid,
-    )
-
-    sd_diag = np.sqrt(np.diag(covariance))
-
-    roots = fair_critical_value_selection(
-        significance_level=significance_level,
-        interval_cutoffs=interval_cutoffs,
-        roughness=roughness,
-        time_grid=time_grid,
-        distribution_type=distribution_type,
-        degrees_of_freedom=dof,
-    )
-
-    scaling_idx = np.searchsorted(interval_cutoffs[1:-1], time_grid)
-    scalings = roots[scaling_idx] / np.sqrt(len(y))
-
-    y_pred = model.predict(x_new)
-
-    return Band(
-        estimate=y_pred,
-        lower=y_pred - scalings * sd_diag,
-        upper=y_pred + scalings * sd_diag,
-    )
+        return Band(
+            estimate=y_pred,
+            lower=y_pred - scaling * sd_diag,
+            upper=y_pred + scaling * sd_diag,
+        )

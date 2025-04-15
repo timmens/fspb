@@ -20,7 +20,7 @@ def fair_critical_value_selection(
     time_grid: NDArray[np.floating],
     roughness: NDArray[np.floating],
     distribution_type: DistributionType | str,
-    degrees_of_freedom: int | None = None,
+    degrees_of_freedom: float | None = None,
     method: str = "brentq",
     n_cores: int = 1,
     *,
@@ -167,7 +167,7 @@ class GaussianAlgorithm(Algorithm):
 
 @dataclass(frozen=True)
 class StudentTAlgorithm(Algorithm):
-    degrees_of_freedom: int
+    degrees_of_freedom: float
 
     def _cdf(self, x: float) -> float:
         return t.cdf(x, df=self.degrees_of_freedom)

@@ -97,7 +97,7 @@ def test_simulate_from_model():
         n_samples=n_samples,
         time_grid=t,
         dof=4,
-        covariance_type="stationary",
+        covariance_type=CovarianceType.STATIONARY,
         length_scale=1.0,
         rng=rng,
     )

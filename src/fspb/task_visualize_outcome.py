@@ -8,7 +8,7 @@ from numpy.typing import NDArray
 from fspb.config import BLD, SRC
 from fspb.model_simulation import (
     CovarianceType,
-    generate_time_grid,
+    generate_default_time_grid,
     simulate_from_model,
 )
 from pytask import Product
@@ -99,7 +99,7 @@ def _generate_outcome_figure_data() -> dict[str, NDArray[np.floating]]:
     """Generate data for Figure XXX for paper."""
     rng = np.random.default_rng(13221)
 
-    time_grid = generate_time_grid(n_points=101)
+    time_grid = generate_default_time_grid()
     stationary_data = simulate_from_model(
         n_samples=20,
         time_grid=time_grid,

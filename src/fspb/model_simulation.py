@@ -11,8 +11,8 @@ from fspb.linear_model import ConcurrentLinearModel
 class CovarianceType(Enum):
     """The type of covariance kernel to use."""
 
-    STATIONARY = "Stationary"
-    NON_STATIONARY = "NonStationary"
+    STATIONARY = "stationary"
+    NON_STATIONARY = "non_stationary"
 
 
 def parse_covariance_type(covariance_type: CovarianceType | str) -> CovarianceType:
@@ -39,7 +39,7 @@ def simulate_from_model(
     n_samples: int,
     time_grid: NDArray[np.floating],
     dof: int,
-    covariance_type: CovarianceType | str,
+    covariance_type: CovarianceType,
     length_scale: float = 1,
     rng: np.random.Generator | None = None,
 ) -> SimulationData:
@@ -263,6 +263,10 @@ def _matern_covariance(
 # ======================================================================================
 # Generate Time Grid
 # ======================================================================================
+
+
+def generate_default_time_grid() -> NDArray[np.floating]:
+    return generate_time_grid(101)
 
 
 def generate_time_grid(n_points: int) -> NDArray[np.floating]:

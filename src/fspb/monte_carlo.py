@@ -5,16 +5,16 @@ from numpy.typing import NDArray
 import numpy as np
 from dataclasses import dataclass
 
+from functools import partial
 
-from fspb.bands import Band, confidence_band
+from fspb.bands import Band, BandType
 from fspb.fair_algorithm import DistributionType
 from fspb.model_simulation import (
     CovarianceType,
     SimulationData,
-    generate_time_grid,
+    generate_default_time_grid,
     simulate_from_model,
 )
-from typing import TypedDict
 
 
 @dataclass
@@ -22,7 +22,7 @@ class MonteCarloSimulationResult:
     """The result of a Monte Carlo simulation."""
 
     simulation_results: list[SingleSimulationResult]
-    signficance_level: float
+    band_options: BandOptions
 
     @property
     def coverage(self) -> NDArray[np.floating]:
@@ -53,7 +53,9 @@ class MonteCarloSimulationResult:
             for result in self.simulation_results
         ]
         scores = [
-            result.band.interval_score(true_y, signifance_level=self.signficance_level)
+            result.band.interval_score(
+                true_y, signifance_level=self.band_options.significance_level
+            )
             for result, true_y in zip(self.simulation_results, true_ys)
         ]
         return np.array(scores).mean()
@@ -63,43 +65,34 @@ class MonteCarloSimulationResult:
 class SingleSimulationResult:
     """The result of a single Monte Carlo simulation."""
 
-    simulation_data: SimulationData
+    data: SimulationData
     new_data: SimulationData
     band: Band
 
 
-class SimulationOptions(TypedDict):
+@dataclass
+class SimulationOptions:
     n_samples: int
     dof: int
-    covariance_type: CovarianceType | str
+    covariance_type: CovarianceType
     length_scale: float
-    time_grid: NDArray[np.floating]
 
 
-class BandOptions(TypedDict):
+@dataclass
+class BandOptions:
+    band_type: BandType
     interval_cutoffs: NDArray[np.floating]
     significance_level: float
-    distribution_type: DistributionType | str
-    time_grid: NDArray[np.floating]
-    dof: int
+    distribution_type: DistributionType
 
 
 def monte_carlo_simulation(
-    n_simulations: int,
-    # Simulation parameters
-    n_samples: int,
     *,
-    dof: int = 15,
-    covariance_type: CovarianceType | str = CovarianceType.STATIONARY,
-    length_scale: float = 0.1,
-    time_grid: NDArray[np.floating] | None = None,
-    seed: int | None = None,
-    # Confidence band parameters
-    interval_cutoffs: NDArray[np.floating] | None = None,
-    significance_level: float = 0.05,
-    distribution_type: DistributionType | str = DistributionType.GAUSSIAN,
-    # Parallelization parameters
+    n_simulations: int,
+    simulation_options: SimulationOptions,
+    band_options: BandOptions,
     n_cores: int = 1,
+    seed: int | None = None,
 ) -> MonteCarloSimulationResult:
     """Run a Monte Carlo simulation.
 
@@ -117,90 +110,74 @@ def monte_carlo_simulation(
         A MonteCarloSimulationResult object.
 
     """
-    if time_grid is None:
-        time_grid = generate_time_grid(n_points=101)
-
-    if interval_cutoffs is None:
-        interval_cutoffs = np.linspace(0, 1, 4)
-
-    band_options = BandOptions(
-        interval_cutoffs=interval_cutoffs,
-        significance_level=significance_level,
-        distribution_type=distribution_type,
-        time_grid=time_grid,
-        dof=dof,
-    )
-
-    sim_options = SimulationOptions(
-        n_samples=n_samples,
-        time_grid=time_grid,
-        dof=dof,
-        covariance_type=covariance_type,
-        length_scale=length_scale,
-    )
+    if n_cores < 1:
+        raise ValueError("n_cores must be at least 1")
 
     if seed is None:
         seed = np.random.default_rng().integers(0, 1_000_000)
+
+    time_grid = generate_default_time_grid()
 
     rng_per_simulation = [
         np.random.default_rng(seed + loop_seed) for loop_seed in range(n_simulations)
     ]
 
-    if n_cores < 1:
-        raise ValueError("n_cores must be at least 1")
-    elif n_cores == 1:
-        results = [
-            _single_simulation(**sim_options, band_kwargs=band_options, rng=rng)
-            for rng in rng_per_simulation
-        ]
+    single_simulation_partialled = partial(
+        _single_simulation,
+        simulation_options=simulation_options,
+        band_options=band_options,
+        time_grid=time_grid,
+    )
+
+    if n_cores == 1:
+        results = [single_simulation_partialled(rng=rng) for rng in rng_per_simulation]
     else:
         results = Parallel(n_jobs=n_cores)(
-            delayed(_single_simulation)(
-                **sim_options, band_kwargs=band_options, rng=rng
-            )
-            for rng in rng_per_simulation
+            delayed(single_simulation_partialled)(rng=rng) for rng in rng_per_simulation
         )
 
-    return MonteCarloSimulationResult(results, signficance_level=significance_level)
+    return MonteCarloSimulationResult(results, band_options)
 
 
 def _single_simulation(
-    n_samples: int,
+    simulation_options: SimulationOptions,
+    band_options: BandOptions,
     time_grid: NDArray[np.floating],
-    dof: int,
-    covariance_type: CovarianceType | str,
-    length_scale: float,
     rng: np.random.Generator,
-    band_kwargs: BandOptions,
 ) -> SingleSimulationResult:
     """Run a single Monte Carlo simulation."""
-    simulation_data = simulate_from_model(
-        n_samples=n_samples,
+
+    data = simulate_from_model(
+        n_samples=simulation_options.n_samples,
         time_grid=time_grid,
-        dof=dof,
-        covariance_type=covariance_type,
-        length_scale=length_scale,
+        dof=simulation_options.dof,
+        covariance_type=simulation_options.covariance_type,
+        length_scale=simulation_options.length_scale,
         rng=rng,
     )
 
     new_data = simulate_from_model(
         n_samples=1,
         time_grid=time_grid,
-        dof=dof,
-        covariance_type=covariance_type,
-        length_scale=length_scale,
+        dof=simulation_options.dof,
+        covariance_type=simulation_options.covariance_type,
+        length_scale=simulation_options.length_scale,
         rng=rng,
     )
 
-    band = confidence_band(
-        y=simulation_data.y,
-        x=simulation_data.x,
+    band = Band.fit(
+        y=data.y,
+        x=data.x,
         x_new=new_data.x,
-        **band_kwargs,
+        band_type=band_options.band_type,
+        time_grid=time_grid,
+        interval_cutoffs=band_options.interval_cutoffs,
+        significance_level=band_options.significance_level,
+        distribution_type=band_options.distribution_type,
     )
 
     return SingleSimulationResult(
-        simulation_data=simulation_data,
+        data=data,
         new_data=new_data,
         band=band,
     )

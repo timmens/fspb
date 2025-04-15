@@ -18,7 +18,16 @@ class ConcurrentLinearModel:
     x_shape: tuple[int, ...] = tuple()
 
     def fit(self, x: NDArray[np.floating], y: NDArray[np.floating]) -> None:
-        """Fit the model coefficients."""
+        """Fit the model coefficients.
+
+        Args:
+            x: Has shape (n_samples, 2, n_time_points)
+            y: Has shape (n_samples, n_time_points)
+
+        """
+        if self.is_fitted:
+            raise ValueError("Model is already fitted. Fit model again.")
+
         if len(y) != len(x):
             raise ValueError("y and x must have the same number of samples")
         if y.shape[1] != x.shape[2]:
