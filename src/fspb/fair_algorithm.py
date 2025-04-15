@@ -90,13 +90,13 @@ class Algorithm(ABC):
                 for interval_id in interval_ids
             )
 
-    def _solve(self, interval_index: int, method: str = "brentq") -> RootResults:
+    def _solve(self, interval_index: int, method: str) -> RootResults:
         return root_scalar(  # type: ignore[call-overload]
             f=self._equation,
             fprime=self._equation_gradient,
-            fprime2=self._equation_hessian,
+            x0=0,
             args=(interval_index,),
-            bracket=[-10, 10],
+            bracket=[0, 25],
             method=method,
         )
 
@@ -104,19 +104,13 @@ class Algorithm(ABC):
         return (
             self._cdf(-x)
             + self._scaling(x) * self.roughness_integrals[interval_index]
-            - self.significance_level * self.interval_lengths[interval_index]
+            - (self.significance_level / 2) * self.interval_lengths[interval_index]
         )
 
     def _equation_gradient(self, x: float, interval_index: int) -> float:
         return (
             -self._cdf_gradient(-x)
             + self._scaling_gradient(x) * self.roughness_integrals[interval_index]
-        )
-
-    def _equation_hessian(self, x: float, interval_index: int) -> float:
-        return (
-            self._cdf_hessian(-x)
-            + self._scaling_hessian(x) * self.roughness_integrals[interval_index]
         )
 
     @abstractmethod
@@ -128,19 +122,11 @@ class Algorithm(ABC):
         pass
 
     @abstractmethod
-    def _cdf_hessian(self, x: float) -> float:
-        pass
-
-    @abstractmethod
     def _scaling(self, x: float) -> float:
         pass
 
     @abstractmethod
     def _scaling_gradient(self, x: float) -> float:
-        pass
-
-    @abstractmethod
-    def _scaling_hessian(self, x: float) -> float:
         pass
 
 
@@ -152,17 +138,11 @@ class GaussianAlgorithm(Algorithm):
     def _cdf_gradient(self, x: float) -> float:
         return norm.pdf(x)
 
-    def _cdf_hessian(self, x: float) -> float:
-        return -x * norm.pdf(x)
-
     def _scaling(self, x: float) -> float:
         return norm.pdf(x)
 
     def _scaling_gradient(self, x: float) -> float:
         return -x * norm.pdf(x)
-
-    def _scaling_hessian(self, x: float) -> float:
-        return (x**2 - 1) * norm.pdf(x)
 
 
 @dataclass(frozen=True)
@@ -175,18 +155,12 @@ class StudentTAlgorithm(Algorithm):
     def _cdf_gradient(self, x: float) -> float:
         return t.pdf(x, df=self.degrees_of_freedom)
 
-    def _cdf_hessian(self, x: float) -> float:
-        dof = self.degrees_of_freedom
-        return -(dof + 1) * x / (dof + x**2) * t.pdf(x, df=dof)
-
     def _scaling(self, x: float) -> float:
-        return 1 + x**2 / self.degrees_of_freedom
+        return t.pdf(x, df=self.degrees_of_freedom)
 
     def _scaling_gradient(self, x: float) -> float:
-        return 2 * x / self.degrees_of_freedom
-
-    def _scaling_hessian(self, x: float) -> float:
-        return 2 / self.degrees_of_freedom
+        v = self.degrees_of_freedom
+        return -x * t.pdf(x, df=v) * (v + 1) / (v + x**2)
 
 
 def _calculate_piecewise_integrals(

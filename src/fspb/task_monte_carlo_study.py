@@ -13,7 +13,7 @@ from fspb.fair_algorithm import DistributionType
 
 
 band_options = BandOptions(
-    band_type=BandType.CONFIDENCE,
+    band_type=BandType.PREDICTION,
     interval_cutoffs=np.array([0, 1 / 3, 2 / 3, 1]),
     significance_level=0.1,
     distribution_type=DistributionType.STUDENT_T,

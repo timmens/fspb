@@ -27,13 +27,9 @@ class MonteCarloSimulationResult:
     @property
     def coverage(self) -> NDArray[np.floating]:
         """The coverage of the Monte Carlo simulation."""
-        true_ys = [
-            result.new_data.model.predict(result.new_data.x)
-            for result in self.simulation_results
-        ]
         contained = [
-            result.band.contains(true_y)
-            for result, true_y in zip(self.simulation_results, true_ys)
+            result.band.contains(true_f)
+            for result, true_f in zip(self.simulation_results, self.band_center_func)
         ]
         return np.array(contained, dtype=np.int8).mean()
 
@@ -48,17 +44,25 @@ class MonteCarloSimulationResult:
     @property
     def interval_score(self) -> NDArray[np.floating]:
         """The interval scores of the Monte Carlo simulation."""
-        true_ys = [
-            result.new_data.model.predict(result.new_data.x)
-            for result in self.simulation_results
-        ]
         scores = [
             result.band.interval_score(
-                true_y, signifance_level=self.band_options.significance_level
+                true_f, signifance_level=self.band_options.significance_level
             )
-            for result, true_y in zip(self.simulation_results, true_ys)
+            for result, true_f in zip(self.simulation_results, self.band_center_func)
         ]
         return np.array(scores).mean()
+
+    @property
+    def band_center_func(self) -> list[NDArray[np.floating]]:
+        if self.band_options.band_type == BandType.CONFIDENCE:
+            return [
+                result.new_data.model.predict(result.new_data.x)
+                for result in self.simulation_results
+            ]
+        elif self.band_options.band_type == BandType.PREDICTION:
+            return [result.new_data.y for result in self.simulation_results]
+        else:
+            raise ValueError(f"Band type {self.band_options.band_type} not supported.")
 
 
 @dataclass

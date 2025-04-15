@@ -65,17 +65,6 @@ def test_gaussian_algorithm_cdf_gradient():
     assert abs(algo._cdf_gradient(0.0) - expected) < 1e-7
 
 
-def test_gaussian_algorithm_cdf_hessian():
-    algo = GaussianAlgorithm(
-        significance_level=0.05,
-        interval_cutoffs=np.array([0, 1], dtype=float),
-        roughness_integrals=np.array([1], dtype=float),
-        interval_lengths=np.array([1], dtype=float),
-    )
-    # hessian at 0 => -0 * norm.pdf(0) = 0
-    assert abs(algo._cdf_hessian(0.0)) < 1e-7
-
-
 def test_gaussian_algorithm_scaling():
     algo = GaussianAlgorithm(
         significance_level=0.05,
