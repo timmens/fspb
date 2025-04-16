@@ -3,7 +3,7 @@ import scipy as sp
 from dataclasses import dataclass
 from numpy.typing import NDArray
 
-from fspb.linear_model import ConcurrentLinearModel
+from fspb.bands.linear_model import ConcurrentLinearModel
 from fspb.types import CovarianceType
 
 

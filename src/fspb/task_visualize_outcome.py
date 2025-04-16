@@ -6,7 +6,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from fspb.config import BLD, SRC
-from fspb.model_simulation import (
+from fspb.simulation.model_simulation import (
     CovarianceType,
     generate_default_time_grid,
     simulate_from_model,
@@ -18,7 +18,7 @@ FIG_FONT_SIZE = 10
 
 
 def task_visualize_outcome(
-    _script: Path = SRC / "model_simulation.py",
+    _script: Path = SRC / "simulation" / "model_simulation.py",
     path_figure: Annotated[Path, Product] = BLD / "figures" / "outcomes.pdf",
 ) -> None:
     """Save Figure XXX for paper."""

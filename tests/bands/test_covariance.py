@@ -1,4 +1,4 @@
-from fspb.covariance import (
+from fspb.bands.covariance import (
     _calculate_covariance_confidence_band,
     _calculate_sigma_x_inv,
     _calculate_error_covariance,

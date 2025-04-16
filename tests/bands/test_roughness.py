@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 from numpy.testing import assert_array_almost_equal as aaae
-from fspb.roughness import _cov_to_corr, calculate_roughness_on_grid
+from fspb.bands.roughness import _cov_to_corr, calculate_roughness_on_grid
 from sklearn.gaussian_process.kernels import RBF
 
 

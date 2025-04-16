@@ -7,10 +7,10 @@ from dataclasses import dataclass
 
 from functools import partial
 
-from fspb.bands import Band, BandType, BandMethod
-from fspb.fair_algorithm import DistributionType
+from fspb.bands.band import Band, BandType, BandMethod
+from fspb.bands.fair_algorithm import DistributionType
 from fspb.types import CovarianceType
-from fspb.model_simulation import (
+from fspb.simulation.model_simulation import (
     SimulationData,
     generate_default_time_grid,
     simulate_from_model,
@@ -18,8 +18,8 @@ from fspb.model_simulation import (
 
 
 @dataclass
-class MonteCarloSimulationResult:
-    """The result of a Monte Carlo simulation."""
+class SimulationResult:
+    """The result of a simulation."""
 
     simulation_results: list[SingleSimulationResult]
     band_options: BandOptions
@@ -40,7 +40,7 @@ class MonteCarloSimulationResult:
         }
 
     def coverage(self) -> tuple[np.floating, np.floating]:
-        """The coverage of the Monte Carlo simulation."""
+        """The coverage of the simulation."""
         contained_list = [
             result.band.contains(true_f)
             for result, true_f in zip(self.simulation_results, self.band_center_func())
@@ -49,7 +49,7 @@ class MonteCarloSimulationResult:
         return np.mean(contained_arr), np.std(contained_arr)
 
     def maximum_width_statistic(self) -> tuple[np.floating, np.floating]:
-        """The maximum width statistic of the Monte Carlo simulation."""
+        """The maximum width statistic of the simulation."""
         widths_list = [
             result.band.maximum_width_statistic for result in self.simulation_results
         ]
@@ -57,7 +57,7 @@ class MonteCarloSimulationResult:
         return np.mean(widths_arr), np.std(widths_arr)
 
     def interval_score(self) -> tuple[np.floating, np.floating]:
-        """The interval scores of the Monte Carlo simulation."""
+        """The interval scores of the simulation."""
         scores_list = [
             result.band.interval_score(
                 true_f, signifance_level=self.band_options.significance_level
@@ -81,7 +81,7 @@ class MonteCarloSimulationResult:
 
 @dataclass
 class SingleSimulationResult:
-    """The result of a single Monte Carlo simulation."""
+    """The result of a single simulation."""
 
     data: SimulationData
     new_data: SimulationData
@@ -106,15 +106,15 @@ class BandOptions:
     method: BandMethod
 
 
-def monte_carlo_simulation(
+def simulation_study(
     *,
     n_simulations: int,
     simulation_options: SimulationOptions,
     band_options: BandOptions,
     n_cores: int = 1,
     seed: int | None = None,
-) -> MonteCarloSimulationResult:
-    """Run a Monte Carlo simulation.
+) -> SimulationResult:
+    """Run a simulation.
 
     Args:
         n_simulations: The number of simulations to run.
@@ -127,7 +127,7 @@ def monte_carlo_simulation(
         n_cores: The number of cores to use for the simulation.
 
     Returns:
-        A MonteCarloSimulationResult object.
+        A SimulationResult object.
 
     """
     if n_cores < 1:
@@ -156,7 +156,7 @@ def monte_carlo_simulation(
             delayed(single_simulation_partialled)(rng=rng) for rng in rng_per_simulation
         )
 
-    return MonteCarloSimulationResult(results, band_options)
+    return SimulationResult(results, band_options)
 
 
 def _single_simulation(
@@ -165,7 +165,7 @@ def _single_simulation(
     time_grid: NDArray[np.floating],
     rng: np.random.Generator,
 ) -> SingleSimulationResult:
-    """Run a single Monte Carlo simulation."""
+    """Run a single simulation."""
 
     data = simulate_from_model(
         n_samples=simulation_options.n_samples,

@@ -1,4 +1,4 @@
-from fspb.fair_algorithm import (
+from fspb.bands.fair_algorithm import (
     calculate_piecewise_integrals,
     fair_critical_value_selection,
     GaussianAlgorithm,

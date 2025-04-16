@@ -45,6 +45,7 @@ optimagic = ">=0.5.1,<0.6"
 cyipopt = ">=1.5.0,<2"
 nlopt = ">=2.10.0,<3"
 pytask-r = ">=0.4.1,<0.5"
+pytask-parallel = ">=0.5.1,<0.6"
 
 
 [tool.pytask.ini_options]

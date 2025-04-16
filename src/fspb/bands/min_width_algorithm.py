@@ -2,7 +2,7 @@ from typing import Callable
 import numpy as np
 from numpy.typing import NDArray
 from dataclasses import dataclass
-from fspb.fair_algorithm import calculate_piecewise_integrals
+from fspb.bands.fair_algorithm import calculate_piecewise_integrals
 from fspb.types import DistributionType, parse_enum_type
 from abc import ABC, abstractmethod
 import jax.numpy as jnp

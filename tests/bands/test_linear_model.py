@@ -1,4 +1,4 @@
-from fspb.linear_model import ConcurrentLinearModel
+from fspb.bands.linear_model import ConcurrentLinearModel
 import pytest
 import numpy as np
 

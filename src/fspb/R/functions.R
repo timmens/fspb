@@ -1,6 +1,6 @@
 #' Extract data components from the generated monte carlo data.
 #'
-#' @param monte_carlo_data A list containing the generated monte carlo data for a single
+#' @param simulation_data A list containing the generated monte carlo data for a single
 #' iteration.
 #' @return A list containing the extracted components:
 #'   - y: The y values. Has shape (N, length(time_grid)).
@@ -8,14 +8,14 @@
 #'   - new_y: The new y values. Has shape (length(time_grid),).
 #'   - new_x: The new x values. Has shape (2, length(time_grid)).
 #'   - time_grid: The time grid. Has shape (length(time_grid),).
-extract_data_components = function(monte_carlo_data) {
-    new_y = monte_carlo_data[["new_y"]]
-    new_x = list(monte_carlo_data[["new_x"]])
+extract_data_components = function(simulation_data) {
+    new_y = simulation_data[["new_y"]]
+    new_x = list(simulation_data[["new_x"]])
 
-    time_grid = monte_carlo_data[["time_grid"]]
+    time_grid = simulation_data[["time_grid"]]
 
-    y = lapply(monte_carlo_data[["y"]], function(x) list(x))
-    x = monte_carlo_data[["x"]]
+    y = lapply(simulation_data[["y"]], function(x) list(x))
+    x = simulation_data[["x"]]
 
     return(list(y=y, x=x, new_y=new_y, new_x=new_x, time_grid=time_grid))
 }

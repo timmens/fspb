@@ -1,4 +1,4 @@
-from fspb.bands import Band
+from fspb.bands.band import Band
 import pytest
 import numpy as np
 

@@ -6,22 +6,22 @@ args = commandArgs(trailingOnly = TRUE)
 path_to_json = args[length(args)]
 config = jsonlite::read_json(path_to_json)
 
-functions_path = config[["functions_path"]]
-data_path = config[["data_path"]]
-product_path = config[["product_path"]]
+functions_script_path = config[["functions_script_path"]]
+simulation_data_path = config[["simulation_data_path"]]
+results_path = config[["results_path"]]
 
 # ======================================================================================
 # Load functions
 # ======================================================================================
 
-source(functions_path)
+source(functions_script_path)
 
 
 # ======================================================================================
 # Run simulation
 # ======================================================================================
 
-simulation_data = jsonlite::read_json(data_path)
+simulation_data = jsonlite::read_json(simulation_data_path)
 
 processed_results = list()
 
@@ -40,4 +40,4 @@ for (iteration in seq_along(simulation_data)) {
 # Save results
 # ======================================================================================
 
-jsonlite::write_json(processed_results, product_path)
+jsonlite::write_json(processed_results, results_path)

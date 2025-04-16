@@ -1,6 +1,6 @@
 import numpy as np
 
-from fspb.model_simulation import (
+from fspb.simulation.model_simulation import (
     CovarianceType,
     simulate_from_model,
     _slope_function,
