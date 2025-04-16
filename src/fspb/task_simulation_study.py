@@ -3,39 +3,17 @@ from pathlib import Path
 from typing import Annotated
 from pytask import Product
 import pandas as pd
-import numpy as np
 import json
+from fspb.bands.band import BAND_OPTIONS, BandOptions
 from fspb.config import ALL_SCENARIOS, SKIP_R
-from fspb.bands.band import BandType, BandMethod
 from fspb.simulation.simulation_study import (
     simulation_study,
-    BandOptions,
     SimulationOptions,
     SingleSimulationResult,
     SimulationResult,
 )
 from fspb.config import SRC, BLD
-from fspb.bands.fair_algorithm import DistributionType
 
-
-BAND_OPTIONS = {
-    BandType.CONFIDENCE: BandOptions(
-        band_type=BandType.CONFIDENCE,
-        interval_cutoffs=np.array([0, 1 / 3, 2 / 3, 1]),
-        significance_level=0.1,
-        distribution_type=DistributionType.GAUSSIAN,
-        norm_order=2,
-        method=BandMethod.FAIR,
-    ),
-    BandType.PREDICTION: BandOptions(
-        band_type=BandType.PREDICTION,
-        interval_cutoffs=np.array([0, 1 / 3, 2 / 3, 1]),
-        significance_level=0.1,
-        distribution_type=DistributionType.STUDENT_T,
-        norm_order=2,
-        method=BandMethod.FAIR,
-    ),
-}
 
 # ======================================================================================
 # Tasks
@@ -74,10 +52,10 @@ for scenario in ALL_SCENARIOS:
         band_options: BandOptions = band_options,
     ) -> None:
         results = simulation_study(
-            n_simulations=500,
+            n_simulations=10,
             simulation_options=simulation_options,
             band_options=band_options,
-            n_cores=4,
+            n_cores=10,
             seed=None,
         )
         pd.to_pickle(results, result_path)

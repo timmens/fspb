@@ -145,3 +145,33 @@ class Band:
             lower=y_pred - scaling * sd_diag,
             upper=y_pred + scaling * sd_diag,
         )
+
+
+@dataclass
+class BandOptions:
+    band_type: BandType
+    interval_cutoffs: NDArray[np.floating]
+    significance_level: float
+    distribution_type: DistributionType
+    norm_order: float
+    method: BandMethod
+
+
+BAND_OPTIONS = {
+    BandType.CONFIDENCE: BandOptions(
+        band_type=BandType.CONFIDENCE,
+        interval_cutoffs=np.array([0, 1 / 3, 2 / 3, 1]),
+        significance_level=0.1,
+        distribution_type=DistributionType.GAUSSIAN,
+        norm_order=2,
+        method=BandMethod.FAIR,
+    ),
+    BandType.PREDICTION: BandOptions(
+        band_type=BandType.PREDICTION,
+        interval_cutoffs=np.array([0, 1 / 3, 2 / 3, 1]),
+        significance_level=0.1,
+        distribution_type=DistributionType.STUDENT_T,
+        norm_order=2,
+        method=BandMethod.FAIR,
+    ),
+}

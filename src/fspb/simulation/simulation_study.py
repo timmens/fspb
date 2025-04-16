@@ -7,8 +7,7 @@ from dataclasses import dataclass
 
 from functools import partial
 
-from fspb.bands.band import Band, BandType, BandMethod
-from fspb.bands.fair_algorithm import DistributionType
+from fspb.bands.band import Band, BandType, BandOptions
 from fspb.types import CovarianceType
 from fspb.simulation.model_simulation import (
     SimulationData,
@@ -94,16 +93,6 @@ class SimulationOptions:
     dof: int
     covariance_type: CovarianceType
     length_scale: float
-
-
-@dataclass
-class BandOptions:
-    band_type: BandType
-    interval_cutoffs: NDArray[np.floating]
-    significance_level: float
-    distribution_type: DistributionType
-    norm_order: float
-    method: BandMethod
 
 
 def simulation_study(
