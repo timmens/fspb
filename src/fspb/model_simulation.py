@@ -1,28 +1,10 @@
-from enum import Enum
-
 import numpy as np
 import scipy as sp
 from dataclasses import dataclass
 from numpy.typing import NDArray
 
 from fspb.linear_model import ConcurrentLinearModel
-
-
-class CovarianceType(Enum):
-    """The type of covariance kernel to use."""
-
-    STATIONARY = "stationary"
-    NON_STATIONARY = "non_stationary"
-
-
-def parse_covariance_type(covariance_type: CovarianceType | str) -> CovarianceType:
-    """Parse the covariance type."""
-    if not isinstance(covariance_type, CovarianceType):
-        try:
-            covariance_type = CovarianceType[covariance_type.upper()]
-        except KeyError:
-            raise ValueError(f"Invalid covariance type: {covariance_type}")
-    return covariance_type
+from fspb.types import CovarianceType
 
 
 @dataclass
@@ -59,8 +41,6 @@ def simulate_from_model(
     """
     if rng is None:
         rng = np.random.default_rng()
-
-    covariance_type = parse_covariance_type(covariance_type)
 
     x = _simulate_predictor(
         time_grid=time_grid,

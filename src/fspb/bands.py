@@ -5,7 +5,8 @@ from numpy.typing import NDArray
 from dataclasses import dataclass
 from fspb.linear_model import ConcurrentLinearModel
 from fspb.roughness import calculate_roughness_on_grid
-from fspb.fair_algorithm import fair_critical_value_selection, DistributionType
+from fspb.fair_algorithm import fair_critical_value_selection
+from fspb.types import DistributionType
 from fspb.min_width_algorithm import min_width_critical_value_selection
 from fspb.covariance import calculate_covariance, dof_estimate
 from fspb.config import BandType

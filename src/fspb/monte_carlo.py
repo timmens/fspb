@@ -9,8 +9,8 @@ from functools import partial
 
 from fspb.bands import Band, BandType, BandMethod
 from fspb.fair_algorithm import DistributionType
+from fspb.types import CovarianceType
 from fspb.model_simulation import (
-    CovarianceType,
     SimulationData,
     generate_default_time_grid,
     simulate_from_model,

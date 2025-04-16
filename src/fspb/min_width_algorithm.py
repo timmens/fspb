@@ -2,7 +2,8 @@ from typing import Callable
 import numpy as np
 from numpy.typing import NDArray
 from dataclasses import dataclass
-from fspb.fair_algorithm import calculate_piecewise_integrals, DistributionType
+from fspb.fair_algorithm import calculate_piecewise_integrals
+from fspb.types import DistributionType, parse_enum_type
 from abc import ABC, abstractmethod
 import jax.numpy as jnp
 from jax import Array, grad, jit
@@ -25,6 +26,8 @@ def min_width_critical_value_selection(
     n_cores: int = 1,
     raise_on_error: bool = True,
 ) -> NDArray[np.floating]:
+    distribution_type = parse_enum_type(distribution_type, DistributionType)
+
     if distribution_type == DistributionType.STUDENT_T:
         raise NotImplementedError("Student-t distribution not implemented")
 

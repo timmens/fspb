@@ -1,17 +1,12 @@
 import numpy as np
 from numpy.typing import NDArray
-from enum import Enum, auto
 from dataclasses import dataclass
 from scipy.optimize import root_scalar, RootResults
 from scipy.stats import norm, t
 from scipy.integrate import simpson
 from abc import ABC, abstractmethod
 from joblib import Parallel, delayed
-
-
-class DistributionType(Enum):
-    GAUSSIAN = auto()
-    STUDENT_T = auto()
+from fspb.types import DistributionType, parse_enum_type
 
 
 def fair_critical_value_selection(
@@ -26,11 +21,7 @@ def fair_critical_value_selection(
     *,
     raise_on_error: bool = True,
 ) -> NDArray[np.floating]:
-    if not isinstance(distribution_type, DistributionType):
-        try:
-            distribution_type = DistributionType[distribution_type.upper()]
-        except ValueError:
-            raise ValueError(f"Invalid distribution type: {distribution_type}")
+    distribution_type = parse_enum_type(distribution_type, DistributionType)
 
     roughness_integrals = calculate_piecewise_integrals(
         interval_cutoffs, values=roughness, time_grid=time_grid

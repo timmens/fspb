@@ -9,6 +9,10 @@ bld
 # Python
 __pycache__/
 **/sandbox.ipynb
+.ruff_cache/
+.pytask/
+.pytest_cache/
+.mypy_cache/
 
 # vscode
 .vscode/

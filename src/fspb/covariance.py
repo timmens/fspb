@@ -1,12 +1,12 @@
 from fspb.config import BandType
 from numpy.typing import NDArray
 import numpy as np
-from enum import Enum
+from enum import StrEnum, auto
 
 
-class ErrorAssumption(Enum):
-    HOMOSKEDASTIC = "homoskedastic"
-    HETEROSKEDASTIC = "heteroskedastic"
+class ErrorAssumption(StrEnum):
+    HOMOSKEDASTIC = auto()
+    HETEROSKEDASTIC = auto()
 
 
 def calculate_covariance(

@@ -12,14 +12,25 @@ from fspb.config import SRC, BLD
 from fspb.fair_algorithm import DistributionType
 
 
-band_options = BandOptions(
-    band_type=BandType.CONFIDENCE,
-    interval_cutoffs=np.array([0, 1 / 3, 2 / 3, 1]),
-    significance_level=0.1,
-    distribution_type=DistributionType.GAUSSIAN,
-    norm_order=2,
-    method=BandMethod.FAIR,
-)
+BAND_OPTIONS = {
+    BandType.CONFIDENCE: BandOptions(
+        band_type=BandType.CONFIDENCE,
+        interval_cutoffs=np.array([0, 1 / 3, 2 / 3, 1]),
+        significance_level=0.1,
+        distribution_type=DistributionType.GAUSSIAN,
+        norm_order=2,
+        method=BandMethod.FAIR,
+    ),
+    BandType.PREDICTION: BandOptions(
+        band_type=BandType.PREDICTION,
+        interval_cutoffs=np.array([0, 1 / 3, 2 / 3, 1]),
+        significance_level=0.1,
+        distribution_type=DistributionType.STUDENT_T,
+        norm_order=2,
+        method=BandMethod.FAIR,
+    ),
+}
+
 
 for scenario in ALL_SCENARIOS:
     result_path = BLD / "monte_carlo" / "raw" / f"{scenario.to_str()}.pkl"
@@ -30,6 +41,8 @@ for scenario in ALL_SCENARIOS:
         covariance_type=scenario.covariance_type,
         length_scale=0.1,
     )
+
+    band_options = BAND_OPTIONS[scenario.band_type]
 
     @pytask.task(id=scenario.to_str())
     def task_run_monte_carlo_study(

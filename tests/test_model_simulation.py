@@ -1,8 +1,6 @@
-import pytest
 import numpy as np
 
 from fspb.model_simulation import (
-    parse_covariance_type,
     CovarianceType,
     simulate_from_model,
     _slope_function,
@@ -14,18 +12,6 @@ from fspb.model_simulation import (
     generate_time_grid,
     SimulationData,
 )
-
-
-def test_parse_covariance_type_valid():
-    assert parse_covariance_type("stationary") == CovarianceType.STATIONARY
-    assert parse_covariance_type("STATIONARY") == CovarianceType.STATIONARY
-    assert parse_covariance_type("non_stationary") == CovarianceType.NON_STATIONARY
-    assert parse_covariance_type(CovarianceType.STATIONARY) == CovarianceType.STATIONARY
-
-
-def test_parse_covariance_type_invalid():
-    with pytest.raises(ValueError):
-        parse_covariance_type("not_a_type")
 
 
 def test_generate_time_grid():
