@@ -250,6 +250,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/pyside6-6.8.2-py313h5f61773_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/pysocks-1.7.1-pyha55dd90_7.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/pytask-0.5.2-pyhd8ed1ab_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/pytask-r-0.4.1-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/pytest-8.3.5-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/python-3.13.2-hf636f53_101_cp313.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/python-dateutil-2.9.0.post0-pyhff2d567_1.conda
@@ -1179,7 +1180,7 @@ packages:
 - pypi: .
   name: fspb
   version: 0.1.0
-  sha256: f9ae273196cc2e6f4bc4b3d27226ade46f000d1349c618460e2855acc7be838d
+  sha256: b9d31f7bdaeffa568d431216fb8203727039a1a17ecd5d6b19fe73687fa47d93
   requires_python: '>=3.13'
   editable: true
 - conda: https://conda.anaconda.org/conda-forge/noarch/fsspec-2025.3.0-pyhd8ed1ab_0.conda
@@ -3672,6 +3673,20 @@ packages:
   - pkg:pypi/pytask?source=hash-mapping
   size: 94837
   timestamp: 1734722968770
+- conda: https://conda.anaconda.org/conda-forge/noarch/pytask-r-0.4.1-pyhd8ed1ab_1.conda
+  sha256: e354053a2401e20ed08729696af943cb3b050213c25538478efe13b29e4c3d8f
+  md5: e8ee7baaf66a313f5f2dc2228d80946f
+  depends:
+  - click
+  - pluggy >=1.0.0
+  - pytask >=0.4.5
+  - python >=3.8
+  license: MIT
+  license_family: MIT
+  purls:
+  - pkg:pypi/pytask-r?source=hash-mapping
+  size: 15502
+  timestamp: 1737567859615
 - conda: https://conda.anaconda.org/conda-forge/noarch/pytest-8.3.5-pyhd8ed1ab_0.conda
   sha256: 963524de7340c56615583ba7b97a6beb20d5c56a59defb59724dc2a3105169c9
   md5: c3c9316209dec74a705a36797970c6be

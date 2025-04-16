@@ -12,6 +12,8 @@ ROOT = SRC.parent.parent.resolve()
 
 BLD = ROOT / "bld"
 
+SKIP_R = False
+
 
 class ScenarioDict(TypedDict):
     n_samples: int

@@ -5,6 +5,7 @@ import pandas as pd
 from pytask import Product
 import pytask
 from fspb.monte_carlo import SingleSimulationResult, MonteCarloSimulationResult
+from fspb.config import SKIP_R, SRC
 import json
 
 ALL_RESULTS_PATHS = [
@@ -39,11 +40,12 @@ def task_processed_results_to_latex(
 
 for result_path in ALL_RESULTS_PATHS:
     scenario = Scenario.from_str(result_path.stem)
-    product_path = BLD / "monte_carlo" / "R" / f"{scenario.to_str()}.json"
+    product_path = BLD / "monte_carlo" / "R" / "raw" / f"{scenario.to_str()}.json"
 
-    @pytask.mark.skip(reason="Slow.")
+    @pytask.mark.skipif(SKIP_R, reason="Not running R analysis.")
     @pytask.task(id=scenario.to_str())
     def task_prepare_simulation_data_for_R(
+        _scripts: Path = SRC / "config.py",
         result_path: Path = result_path,
         product_path: Annotated[Path, Product] = product_path,
     ) -> None:
