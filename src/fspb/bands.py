@@ -6,8 +6,15 @@ from dataclasses import dataclass
 from fspb.linear_model import ConcurrentLinearModel
 from fspb.roughness import calculate_roughness_on_grid
 from fspb.fair_algorithm import fair_critical_value_selection, DistributionType
+from fspb.min_width_algorithm import min_width_critical_value_selection
 from fspb.covariance import calculate_covariance, dof_estimate
 from fspb.config import BandType
+from enum import StrEnum, auto
+
+
+class BandMethod(StrEnum):
+    FAIR = auto()
+    MIN_WIDTH = auto()
 
 
 @dataclass
@@ -72,6 +79,8 @@ class Band:
         interval_cutoffs: NDArray[np.floating],
         significance_level: float,
         distribution_type: DistributionType,
+        norm_order: float,
+        method: BandMethod,
     ) -> Band:
         model = ConcurrentLinearModel()
         model.fit(x, y)
@@ -91,15 +100,30 @@ class Band:
             cov=covariance,
             time_grid=time_grid,
         )
+        sd_diag = np.sqrt(np.diag(covariance))
 
-        critical_value_per_interval = fair_critical_value_selection(
-            significance_level=significance_level,
-            interval_cutoffs=interval_cutoffs,
-            roughness=roughness,
-            time_grid=time_grid,
-            distribution_type=distribution_type,
-            degrees_of_freedom=dof_hat,
-        )
+        if method == BandMethod.FAIR:
+            critical_value_per_interval = fair_critical_value_selection(
+                significance_level=significance_level,
+                interval_cutoffs=interval_cutoffs,
+                roughness=roughness,
+                time_grid=time_grid,
+                distribution_type=distribution_type,
+                degrees_of_freedom=dof_hat,
+            )
+        elif method == BandMethod.MIN_WIDTH:
+            critical_value_per_interval = min_width_critical_value_selection(
+                significance_level=significance_level,
+                interval_cutoffs=interval_cutoffs,
+                roughness=roughness,
+                distribution_type=distribution_type,
+                degrees_of_freedom=dof_hat,
+                time_grid=time_grid,
+                sd_diag=sd_diag,
+                norm_order=norm_order,
+            )
+        else:
+            raise ValueError(f"Unknown band method: {method}")
 
         # Critical values are defined per interval sesction, so we need to map the
         # values over the time grid interval.
@@ -114,7 +138,6 @@ class Band:
             raise ValueError(f"Unknown band type: {band_type}")
 
         y_pred = model.predict(x_new)
-        sd_diag = np.sqrt(np.diag(covariance))
 
         return Band(
             estimate=y_pred,

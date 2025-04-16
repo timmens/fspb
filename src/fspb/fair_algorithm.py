@@ -32,7 +32,7 @@ def fair_critical_value_selection(
         except ValueError:
             raise ValueError(f"Invalid distribution type: {distribution_type}")
 
-    roughness_integrals = _calculate_piecewise_integrals(
+    roughness_integrals = calculate_piecewise_integrals(
         interval_cutoffs, values=roughness, time_grid=time_grid
     )
     interval_lengths = interval_cutoffs[1:] - interval_cutoffs[:-1]
@@ -163,7 +163,7 @@ class StudentTAlgorithm(Algorithm):
         return -x * t.pdf(x, df=v) * (v + 1) / (v + x**2)
 
 
-def _calculate_piecewise_integrals(
+def calculate_piecewise_integrals(
     interval_cutoffs: NDArray[np.floating],
     values: NDArray[np.floating],
     time_grid: NDArray[np.floating],

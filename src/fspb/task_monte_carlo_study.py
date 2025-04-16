@@ -6,17 +6,19 @@ import pandas as pd
 import numpy as np
 
 from fspb.config import ALL_SCENARIOS
-from fspb.bands import BandType
+from fspb.bands import BandType, BandMethod
 from fspb.monte_carlo import monte_carlo_simulation, BandOptions, SimulationOptions
 from fspb.config import SRC, BLD
 from fspb.fair_algorithm import DistributionType
 
 
 band_options = BandOptions(
-    band_type=BandType.PREDICTION,
+    band_type=BandType.CONFIDENCE,
     interval_cutoffs=np.array([0, 1 / 3, 2 / 3, 1]),
     significance_level=0.1,
-    distribution_type=DistributionType.STUDENT_T,
+    distribution_type=DistributionType.GAUSSIAN,
+    norm_order=2,
+    method=BandMethod.FAIR,
 )
 
 for scenario in ALL_SCENARIOS:
@@ -36,6 +38,7 @@ for scenario in ALL_SCENARIOS:
             SRC / "bands.py",
             SRC / "fair_algorithm.py",
             SRC / "covariance.py",
+            SRC / "min_width_algorithm.py",
         ],
         result_path: Annotated[Path, Product] = result_path,
         simulation_options: SimulationOptions = simulation_options,

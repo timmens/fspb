@@ -77,4 +77,6 @@ repos:
           - pytask
           - pytest
           - scikit-learn
+          - jax
+          - optimagic
         args: [--config=pyproject.toml]
