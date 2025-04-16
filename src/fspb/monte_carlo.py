@@ -24,35 +24,49 @@ class MonteCarloSimulationResult:
     simulation_results: list[SingleSimulationResult]
     band_options: BandOptions
 
-    @property
-    def coverage(self) -> NDArray[np.floating]:
-        """The coverage of the Monte Carlo simulation."""
-        contained = [
-            result.band.contains(true_f)
-            for result, true_f in zip(self.simulation_results, self.band_center_func)
-        ]
-        return np.array(contained, dtype=np.int8).mean()
+    def report(self) -> dict[str, float]:
+        coverage_mean, coverage_std = self.coverage()
+        maximum_width_statistic_mean, maximum_width_statistic_std = (
+            self.maximum_width_statistic()
+        )
+        interval_score_mean, interval_score_std = self.interval_score()
+        return {
+            "coverage": float(coverage_mean),
+            "coverage_std": float(coverage_std),
+            "maximum_width_statistic": float(maximum_width_statistic_mean),
+            "maximum_width_statistic_std": float(maximum_width_statistic_std),
+            "interval_score": float(interval_score_mean),
+            "interval_score_std": float(interval_score_std),
+        }
 
-    @property
-    def maximum_width_statistic(self) -> NDArray[np.floating]:
+    def coverage(self) -> tuple[np.floating, np.floating]:
+        """The coverage of the Monte Carlo simulation."""
+        contained_list = [
+            result.band.contains(true_f)
+            for result, true_f in zip(self.simulation_results, self.band_center_func())
+        ]
+        contained_arr = np.array(contained_list, dtype=np.int8)
+        return np.mean(contained_arr), np.std(contained_arr)
+
+    def maximum_width_statistic(self) -> tuple[np.floating, np.floating]:
         """The maximum width statistic of the Monte Carlo simulation."""
-        widths = [
+        widths_list = [
             result.band.maximum_width_statistic for result in self.simulation_results
         ]
-        return np.array(widths).mean()
+        widths_arr = np.array(widths_list, dtype=np.float64)
+        return np.mean(widths_arr), np.std(widths_arr)
 
-    @property
-    def interval_score(self) -> NDArray[np.floating]:
+    def interval_score(self) -> tuple[np.floating, np.floating]:
         """The interval scores of the Monte Carlo simulation."""
-        scores = [
+        scores_list = [
             result.band.interval_score(
                 true_f, signifance_level=self.band_options.significance_level
             )
-            for result, true_f in zip(self.simulation_results, self.band_center_func)
+            for result, true_f in zip(self.simulation_results, self.band_center_func())
         ]
-        return np.array(scores).mean()
+        scores_arr = np.array(scores_list, dtype=np.float64)
+        return np.mean(scores_arr), np.std(scores_arr)
 
-    @property
     def band_center_func(self) -> list[NDArray[np.floating]]:
         if self.band_options.band_type == BandType.CONFIDENCE:
             return [

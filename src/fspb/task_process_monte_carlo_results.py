@@ -23,12 +23,18 @@ def task_process_monte_carlo_study(
     processed.to_pickle(processed_path)
 
 
-def task_processed_results_to_markdown(
+def task_processed_results_to_latex(
     processed_path: Path = BLD / "monte_carlo" / "processed.pkl",
-    markdown_path: Annotated[Path, Product] = BLD / "monte_carlo" / "processed.md",
+    latex_paths: Annotated[dict[str, Path], Product] = {
+        "Confidence": BLD / "monte_carlo" / "processed_confidence.tex",
+        "Prediction": BLD / "monte_carlo" / "processed_prediction.tex",
+    },
 ) -> None:
-    results = pd.read_pickle(processed_path)
-    results.to_markdown(markdown_path)
+    processed = pd.read_pickle(processed_path)
+    publication_table = prepare_processed_data_for_publication(processed)
+    for band_type, latex_path in latex_paths.items():
+        out = publication_table.xs(band_type, level="Band Type").reset_index()
+        out.to_latex(latex_path, index=False)
 
 
 for result_path in ALL_RESULTS_PATHS:
@@ -64,6 +70,52 @@ for result_path in ALL_RESULTS_PATHS:
 # ======================================================================================
 
 
+def prepare_processed_data_for_publication(processed: pd.DataFrame) -> pd.DataFrame:
+    df = processed.map(lambda x: f"{x:.3f}")
+    column_groups = [
+        "coverage",
+        "maximum_width_statistic",
+        "interval_score",
+    ]
+
+    combined = {}
+
+    for column in column_groups:
+        mean_col = df[column]
+        std_col = df[f"{column}_std"]
+
+        combined[column] = mean_col.astype(str) + " (" + std_col.astype(str) + ")"
+
+    result = pd.DataFrame(combined)
+
+    val_rename_mapping = {
+        "covariance_type": {
+            "non_stationary": "NS",
+            "stationary": "S",
+        },
+        "band_type": {
+            "confidence": "Confidence",
+            "prediction": "Prediction",
+        },
+    }
+
+    var_rename_mapping = {
+        "coverage": "Coverage",
+        "maximum_width_statistic": "Max. Width",
+        "interval_score": "Interval Score",
+        "n_samples": "$n$",
+        "dof": r"$\nu$",
+        "covariance_type": r"$\gamma_{st}$",
+        "band_type": "Band Type",
+    }
+
+    result = result.reset_index()
+    result = result.replace(val_rename_mapping)  # type: ignore[arg-type]
+    result = result.rename(columns=var_rename_mapping)
+
+    return result.set_index(["$n$", r"$\nu$", r"$\gamma_{st}$", "Band Type"])
+
+
 def process_monte_carlo_results(
     results: list[MonteCarloSimulationResult],
     scenarios: list[Scenario],
@@ -77,10 +129,9 @@ def process_monte_carlo_results(
     """
     processed: list[pd.Series[pd.Float64Dtype]] = []
     for result, scenario in zip(results, scenarios):
-        sr = pd.Series(scenario.to_dict())
-        sr["coverage"] = result.coverage
-        sr["maximum_width_statistic"] = result.maximum_width_statistic
-        sr["interval_score"] = result.interval_score
-        processed.append(sr)
+        data = result.report() | scenario.to_dict()
+        processed.append(pd.Series(data))
     index_cols = scenarios[0]._fields()
-    return pd.concat(processed, axis=1).T.set_index(index_cols)
+    return (
+        pd.concat(processed, axis=1).T.set_index(index_cols).sort_index().astype(float)
+    )
