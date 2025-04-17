@@ -52,7 +52,7 @@ for scenario in ALL_SCENARIOS:
         band_options: BandOptions = band_options,
     ) -> None:
         results = simulation_study(
-            n_simulations=2_000,
+            n_simulations=500,
             simulation_options=simulation_options,
             band_options=band_options,
             n_cores=10,

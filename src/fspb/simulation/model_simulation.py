@@ -51,6 +51,7 @@ def simulate_from_model(
     error = _simulate_error(
         n_samples=n_samples,
         time_grid=time_grid,
+        x=x,
         dof=dof,
         covariance_type=covariance_type,
         rng=rng,
@@ -157,6 +158,7 @@ def _predictor_function(
 def _simulate_error(
     n_samples: int,
     time_grid: NDArray[np.floating],
+    x: NDArray[np.floating],
     dof: int,
     covariance_type: CovarianceType,
     rng: np.random.Generator,
@@ -172,6 +174,7 @@ def _simulate_error(
     Args:
         n_samples: The number of samples to simulate.
         time_grid: The time grid to simulate the errors for.
+        x: The predictor grid. Has shape (n_samples, 2, n_points).
         dof: The degrees of freedom of the Student's t distribution.
         covariance_type: The type of covariance to use.
         rng: The random number generator to use for the simulation.
@@ -188,9 +191,13 @@ def _simulate_error(
     u = rng.chisquare(dof, size=n_samples)
     scales = np.sqrt(dof / u)
 
-    z = rng.multivariate_normal(
+    z1 = rng.multivariate_normal(
         mean=np.zeros_like(time_grid), cov=cov_matrix, size=n_samples
     )
+    z2 = rng.multivariate_normal(
+        mean=np.zeros_like(time_grid), cov=cov_matrix, size=n_samples
+    )
+    z = z1 + x[:, 1, :] * z2
 
     return scales[:, np.newaxis] * z
 
@@ -199,7 +206,7 @@ def _matern_covariance(
     time_grid: NDArray[np.floating],
     covariance_type: CovarianceType,
     length_scale: float = 1,
-    sigma: float = 1 / 2,
+    sigma: float = 1 / 4,
 ) -> NDArray[np.floating]:
     """Compute the Matern covariance matrix for the given time grid.
 

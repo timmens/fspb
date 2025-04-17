@@ -2,7 +2,7 @@ from fspb.bands.covariance import (
     _calculate_covariance_confidence_band,
     _calculate_sigma_x_inv,
     _calculate_error_covariance,
-    _multiply_x_new_sigma_x_inv_x_newT,
+    _multiply_a_B_a,
 )
 import pytest
 import numpy as np
@@ -65,7 +65,7 @@ def test_multiply_x_new_sigma_x_inv_x_newT(data):
             [0, 6.75],
         ]
     )
-    got = _multiply_x_new_sigma_x_inv_x_newT(x_new, sigma_x_inv)
+    got = _multiply_a_B_a(x_new, sigma_x_inv)
     assert got.shape == expected.shape
     assert_array_equal(got, expected)
 
