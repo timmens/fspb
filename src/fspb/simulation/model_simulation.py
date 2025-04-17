@@ -199,7 +199,7 @@ def _matern_covariance(
     time_grid: NDArray[np.floating],
     covariance_type: CovarianceType,
     length_scale: float = 1,
-    sigma: float = 1 / 4,
+    sigma: float = 1 / 2,
 ) -> NDArray[np.floating]:
     """Compute the Matern covariance matrix for the given time grid.
 

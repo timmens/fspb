@@ -28,14 +28,14 @@ class SimulationResult:
         maximum_width_statistic_mean, maximum_width_statistic_std = (
             self.maximum_width_statistic()
         )
-        interval_score_mean, interval_score_std = self.interval_score()
+        band_score_mean, band_score_std = self.band_score()
         return {
             "coverage": float(coverage_mean),
             "coverage_std": float(coverage_std),
             "maximum_width_statistic": float(maximum_width_statistic_mean),
             "maximum_width_statistic_std": float(maximum_width_statistic_std),
-            "interval_score": float(interval_score_mean),
-            "interval_score_std": float(interval_score_std),
+            "band_score": float(band_score_mean),
+            "band_score_std": float(band_score_std),
         }
 
     def coverage(self) -> tuple[np.floating, np.floating]:
@@ -55,10 +55,10 @@ class SimulationResult:
         widths_arr = np.array(widths_list, dtype=np.float64)
         return np.mean(widths_arr), np.std(widths_arr)
 
-    def interval_score(self) -> tuple[np.floating, np.floating]:
-        """The interval scores of the simulation."""
+    def band_score(self) -> tuple[np.floating, np.floating]:
+        """The band scores of the simulation."""
         scores_list = [
-            result.band.interval_score(
+            result.band.band_score(
                 true_f, signifance_level=self.band_options.significance_level
             )
             for result, true_f in zip(self.simulation_results, self.band_center_func())

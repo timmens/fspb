@@ -14,7 +14,7 @@ def prepare_consolidated_results_for_publication(
 
     column_groups = [
         "maximum_width_statistic",
-        "interval_score",
+        "band_score",
     ]
     combined = {"coverage": rounded["coverage"]}
 
@@ -36,7 +36,7 @@ def prepare_consolidated_results_for_publication(
     var_rename_mapping = {
         "coverage": "Coverage",
         "maximum_width_statistic": "Maximum Width",
-        "interval_score": "Interval Score",
+        "band_score": "band score",
         "n_samples": "$n$",
         "dof": r"$\nu$",
         "covariance_type": r"$\gamma_{st}$",

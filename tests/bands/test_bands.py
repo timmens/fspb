@@ -23,8 +23,8 @@ def test_maximum_width_statistic(band):
     assert band.maximum_width_statistic == 5
 
 
-def test_interval_score(band):
-    assert np.allclose(band.interval_score(np.zeros(3), signifance_level=0.2), 5)
+def test_band_score(band):
+    assert np.allclose(band.band_score(np.zeros(3), signifance_level=0.2), 5)
     assert np.allclose(
-        band.interval_score(np.array([-3, -2, -1]), signifance_level=0.2), 5.2
+        band.band_score(np.array([-3, -2, -1]), signifance_level=0.2), 5.2
     )

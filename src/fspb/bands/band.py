@@ -46,26 +46,26 @@ class Band:
         """
         return np.max(self.upper - self.lower)
 
-    def interval_score(
-        self, func: NDArray[np.floating], signifance_level: float
-    ) -> float:
-        """Calculate the interval score of the band.
+    def band_score(self, func: NDArray[np.floating], signifance_level: float) -> float:
+        """Calculate the band score of the band.
 
         Args:
             func: Has shape (n_time_points, )
             signifance_level: The significance level of the band.
 
         Returns:
-            The interval score of the band.
+            The band score of the band.
 
         """
         maximum_width_statistic = self.maximum_width_statistic
-        maximum_low_to_func = np.max((self.lower - func) * (func < self.lower))
-        maximum_func_to_high = np.max((self.upper - func) * (func > self.upper))
-        return (
-            maximum_width_statistic
-            + signifance_level / 2 * maximum_low_to_func
-            + signifance_level / 2 * maximum_func_to_high
+        maximum_low_to_func = np.max(
+            self.lower - func, where=func < self.lower, initial=0
+        )
+        maximum_func_to_high = np.max(
+            func - self.upper, where=func > self.upper, initial=0
+        )
+        return maximum_width_statistic + (2 / signifance_level) * (
+            maximum_low_to_func + maximum_func_to_high
         )
 
     @classmethod
