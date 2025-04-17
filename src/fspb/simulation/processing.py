@@ -7,19 +7,20 @@ from fspb.simulation.simulation_study import SimulationResult, SingleSimulationR
 from fspb.config import Scenario
 
 
-def prepare_processed_data_for_publication(processed: pd.DataFrame) -> pd.DataFrame:
-    df = processed.map(lambda x: f"{x:.3f}")
+def prepare_consolidated_results_for_publication(
+    consolidated: pd.DataFrame,
+) -> dict[str, pd.DataFrame]:
+    rounded = consolidated.map(lambda x: f"{x:.3f}").drop(columns="coverage_std")
+
     column_groups = [
-        "coverage",
         "maximum_width_statistic",
         "interval_score",
     ]
-
-    combined = {}
+    combined = {"coverage": rounded["coverage"]}
 
     for column in column_groups:
-        mean_col = df[column]
-        std_col = df[f"{column}_std"]
+        mean_col = rounded[column]
+        std_col = rounded[f"{column}_std"]
 
         combined[column] = mean_col.astype(str) + " (" + std_col.astype(str) + ")"
 
@@ -30,27 +31,29 @@ def prepare_processed_data_for_publication(processed: pd.DataFrame) -> pd.DataFr
             "non_stationary": "NS",
             "stationary": "S",
         },
-        "band_type": {
-            "confidence": "Confidence",
-            "prediction": "Prediction",
-        },
     }
 
     var_rename_mapping = {
         "coverage": "Coverage",
-        "maximum_width_statistic": "Max. Width",
+        "maximum_width_statistic": "Maximum Width",
         "interval_score": "Interval Score",
         "n_samples": "$n$",
         "dof": r"$\nu$",
         "covariance_type": r"$\gamma_{st}$",
-        "band_type": "Band Type",
     }
 
     result = result.reset_index()
     result = result.replace(val_rename_mapping)  # type: ignore[arg-type]
     result = result.rename(columns=var_rename_mapping)
+    result = result.set_index(
+        ["Method", "band_type", "$n$", r"$\nu$", r"$\gamma_{st}$"]
+    )
+    result = result.unstack(level="Method")  # type: ignore[assignment]
 
-    return result.set_index(["$n$", r"$\nu$", r"$\gamma_{st}$", "Band Type"])
+    return {
+        "prediction": result.xs("prediction", level="band_type"),  # type: ignore[dict-item]
+        "confidence": result.xs("confidence", level="band_type"),  # type: ignore[dict-item]
+    }
 
 
 def process_our_simulation_results(

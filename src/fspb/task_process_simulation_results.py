@@ -6,6 +6,7 @@ from pytask import Product
 from fspb.simulation.processing import (
     process_our_simulation_results,
     process_their_simulation_results,
+    prepare_consolidated_results_for_publication,
 )
 
 
@@ -64,15 +65,14 @@ def task_consolidate_simulation_results(
     out.to_pickle(consolidated_path)
 
 
-# def task_processed_results_to_latex(
-#     processed_path: Path = BLD / "monte_carlo" / "processed.pkl",
-#     latex_paths: Annotated[dict[str, Path], Product] = {
-#         "Confidence": BLD / "monte_carlo" / "processed_confidence.tex",
-#         "Prediction": BLD / "monte_carlo" / "processed_prediction.tex",
-#     },
-# ) -> None:
-#     processed = pd.read_pickle(processed_path)
-#     publication_table = prepare_processed_data_for_publication(processed)
-#     for band_type, latex_path in latex_paths.items():
-#         out = publication_table.xs(band_type, level="Band Type").reset_index()
-#         out.to_latex(latex_path, index=False)
+def task_processed_results_to_latex(
+    consolidated_path: Path = BLD / "simulation" / "consolidated_results.pkl",
+    latex_paths: Annotated[dict[str, Path], Product] = {
+        "confidence": BLD / "simulation" / "consolidated_results_confidence.tex",
+        "prediction": BLD / "simulation" / "consolidated_results_prediction.tex",
+    },
+) -> None:
+    consolidated = pd.read_pickle(consolidated_path)
+    tables = prepare_consolidated_results_for_publication(consolidated)
+    for band_type, latex_path in latex_paths.items():
+        tables[band_type].to_latex(latex_path)
