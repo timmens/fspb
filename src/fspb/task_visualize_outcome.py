@@ -56,15 +56,17 @@ def _create_outcome_figure(data: dict[str, NDArray[np.floating]]) -> plt.Figure:
     for ax in axes:
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
+        ax.spines["left"].set_visible(False)
         ax.spines["bottom"].set_visible(False)
         ax.tick_params(labelsize=FIG_FONT_SIZE)
         ax.grid(visible=True, linestyle="--", alpha=0.7)
         ax.set_xlim(0, 1)
-        ax.set_ylim(0.25, 1.8)
+        ax.set_ylim(-3.9, 4.9)
+        ax.set_xticks([0, 0.25, 0.5, 0.75, 1])
 
     fig.text(
-        0.1,
-        0.93,
+        0.10,
+        0.92,
         "(a) Stationary",
         fontsize=FIG_FONT_SIZE,
         bbox={
@@ -75,8 +77,8 @@ def _create_outcome_figure(data: dict[str, NDArray[np.floating]]) -> plt.Figure:
         },
     )
     fig.text(
-        0.1,
-        0.48,
+        0.10,
+        0.51,
         "(b) Non-stationary",
         fontsize=FIG_FONT_SIZE,
         bbox={
@@ -88,10 +90,11 @@ def _create_outcome_figure(data: dict[str, NDArray[np.floating]]) -> plt.Figure:
     )
 
     axes[1].set_xlabel("$t$", fontsize=FIG_FONT_SIZE)
-    fig.text(0, 0.53, "$Y_i(t)$", fontsize=FIG_FONT_SIZE, rotation=0)
+    fig.text(0, 0.50, "$Y_i(t)$", fontsize=FIG_FONT_SIZE, rotation=0)
 
-    fig.tight_layout(rect=(0, 0.03, 1, 1))
+    fig.tight_layout(rect=(0.02, 0.03, 1, 1))
     fig.set_size_inches(PAPER_TEXT_WIDTH, 3)
+    fig.subplots_adjust(hspace=-0.15)
     return fig
 
 
@@ -101,17 +104,19 @@ def _generate_outcome_figure_data() -> dict[str, NDArray[np.floating]]:
 
     time_grid = generate_default_time_grid()
     stationary_data = simulate_from_model(
-        n_samples=20,
+        n_samples=15,
         time_grid=time_grid,
-        dof=15,
+        dof=5,
         covariance_type=CovarianceType.STATIONARY,
+        length_scale=0.4,
         rng=rng,
     )
     non_stationary_data = simulate_from_model(
-        n_samples=20,
+        n_samples=15,
         time_grid=time_grid,
-        dof=15,
+        dof=5,
         covariance_type=CovarianceType.NON_STATIONARY,
+        length_scale=0.4,
         rng=rng,
     )
     return {
