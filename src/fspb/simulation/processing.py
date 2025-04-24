@@ -74,6 +74,19 @@ def process_our_simulation_results(
     )
 
 
+def their_results_to_simulation_results_object(
+    their_results: list[pd.DataFrame],
+    our_results: list[SimulationResult],
+    scenarios: list[Scenario],
+) -> list[SimulationResult]:
+    return [
+        _result_and_scenario_to_simulation_result(their_result, our_result, scenario)
+        for their_result, our_result, scenario in zip(
+            their_results, our_results, scenarios
+        )
+    ]
+
+
 def process_their_simulation_results(
     their_results: list[pd.DataFrame],
     our_results: list[SimulationResult],
@@ -91,16 +104,11 @@ def process_their_simulation_results(
         scenarios: The scenarios of the simulation.
 
     """
-    simulation_results = [
-        _result_and_scenario_to_simulation_result(
-            their_result=their_result,
-            our_result=our_result,
-            scenario=scenario,
-        )
-        for their_result, our_result, scenario in zip(
-            their_results, our_results, scenarios
-        )
-    ]
+    simulation_results = their_results_to_simulation_results_object(
+        their_results=their_results,
+        our_results=our_results,
+        scenarios=scenarios,
+    )
     return process_our_simulation_results(simulation_results, scenarios)
 
 
