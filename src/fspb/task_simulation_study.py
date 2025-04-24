@@ -4,8 +4,9 @@ from typing import Annotated
 from pytask import Product
 import pandas as pd
 import json
+from fspb.types import BandType
 from fspb.bands.band import BAND_OPTIONS, BandOptions
-from fspb.config import ALL_SCENARIOS, SKIP_R
+from fspb.config import PREDICTION_SCENARIOS, CONFIDENCE_SCENARIOS, SKIP_R
 from fspb.simulation.simulation_study import (
     simulation_study,
     SimulationOptions,
@@ -20,7 +21,7 @@ from fspb.config import SRC, BLD
 # ======================================================================================
 
 
-for scenario in ALL_SCENARIOS:
+for scenario in PREDICTION_SCENARIOS + CONFIDENCE_SCENARIOS:
     pickle_path = BLD / "simulation" / "pickle" / f"{scenario.to_str()}.pkl"
 
     # Scenario-specific Options
@@ -30,7 +31,7 @@ for scenario in ALL_SCENARIOS:
         n_samples=scenario.n_samples,
         dof=scenario.dof,
         covariance_type=scenario.covariance_type,
-        length_scale=0.1,
+        length_scale=0.4,
     )
 
     band_options = BAND_OPTIONS[scenario.band_type]
@@ -46,6 +47,7 @@ for scenario in ALL_SCENARIOS:
             SRC / "bands" / "fair_algorithm.py",
             SRC / "bands" / "min_width_algorithm.py",
             SRC / "simulation" / "simulation_study.py",
+            SRC / "simulation" / "model_simulation.py",
         ],
         result_path: Annotated[Path, Product] = pickle_path,
         simulation_options: SimulationOptions = simulation_options,
@@ -60,12 +62,17 @@ for scenario in ALL_SCENARIOS:
         )
         pd.to_pickle(results, result_path)
 
+    # Skip confidence band simulation in R
+    # ==================================================================================
+
+    skip_r_analysis = SKIP_R or scenario.band_type == BandType.CONFIDENCE
+
     # Convert simulation data to json
     # ==================================================================================
 
     json_path = BLD / "simulation" / "json" / f"{scenario.to_str()}.json"
 
-    @pytask.mark.skipif(SKIP_R, reason="Not running R analysis.")
+    @pytask.mark.skipif(skip_r_analysis, reason="Not running R analysis.")
     @pytask.task(id=scenario.to_str())
     def task_export_simulation_data_to_json(
         _scripts: Path = SRC / "config.py",
@@ -94,7 +101,7 @@ for scenario in ALL_SCENARIOS:
 
     product_path = BLD / "simulation" / "R" / f"{scenario.to_str()}.json"
 
-    @pytask.mark.skipif(SKIP_R, reason="Not running R analysis.")
+    @pytask.mark.skipif(skip_r_analysis, reason="Not running R analysis.")
     @pytask.task(id=scenario.to_str())
     @pytask.mark.r(script=SRC / "R" / "conformal_prediction.R")
     def task_simulation_R(

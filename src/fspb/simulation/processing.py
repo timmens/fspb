@@ -9,7 +9,8 @@ from fspb.config import Scenario
 
 def prepare_consolidated_results_for_publication(
     consolidated: pd.DataFrame,
-) -> dict[str, pd.DataFrame]:
+) -> pd.DataFrame:
+    # consolidated data without band_type index level!
     rounded = consolidated.map(lambda x: f"{x:.3f}").drop(columns="coverage_std")
 
     column_groups = [
@@ -45,15 +46,8 @@ def prepare_consolidated_results_for_publication(
     result = result.reset_index()
     result = result.replace(val_rename_mapping)  # type: ignore[arg-type]
     result = result.rename(columns=var_rename_mapping)
-    result = result.set_index(
-        ["Method", "band_type", "$n$", r"$\nu$", r"$\gamma_{st}$"]
-    )
-    result = result.unstack(level="Method")  # type: ignore[assignment]
-
-    return {
-        "prediction": result.xs("prediction", level="band_type"),  # type: ignore[dict-item]
-        "confidence": result.xs("confidence", level="band_type"),  # type: ignore[dict-item]
-    }
+    result = result.set_index(["Method", "$n$", r"$\nu$", r"$\gamma_{st}$"])
+    return result.unstack(level="Method")  # type: ignore[return-value]
 
 
 def process_our_simulation_results(

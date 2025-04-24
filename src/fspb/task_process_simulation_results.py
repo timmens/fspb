@@ -1,4 +1,4 @@
-from fspb.config import BLD, ALL_SCENARIOS, Scenario
+from fspb.config import BLD, PREDICTION_SCENARIOS, CONFIDENCE_SCENARIOS, Scenario
 from pathlib import Path
 from typing import Annotated
 import pandas as pd
@@ -12,11 +12,12 @@ from fspb.simulation.processing import (
 
 OUR_RESULTS_PATHS = [
     BLD / "simulation" / "pickle" / f"{scenario.to_str()}.pkl"
-    for scenario in ALL_SCENARIOS
+    for scenario in PREDICTION_SCENARIOS + CONFIDENCE_SCENARIOS
 ]
 
 THEIR_RESULTS_PATHS = [
-    BLD / "simulation" / "R" / f"{scenario.to_str()}.json" for scenario in ALL_SCENARIOS
+    BLD / "simulation" / "R" / f"{scenario.to_str()}.json"
+    for scenario in PREDICTION_SCENARIOS
 ]
 
 
@@ -65,14 +66,25 @@ def task_consolidate_simulation_results(
     out.to_pickle(consolidated_path)
 
 
-def task_processed_results_to_latex(
+def task_processed_prediction_results_to_latex(
     consolidated_path: Path = BLD / "simulation" / "consolidated_results.pkl",
-    latex_paths: Annotated[dict[str, Path], Product] = {
-        "confidence": BLD / "simulation" / "consolidated_results_confidence.tex",
-        "prediction": BLD / "simulation" / "consolidated_results_prediction.tex",
-    },
+    latex_path: Annotated[Path, Product] = BLD
+    / "simulation"
+    / "consolidated_results_prediction.tex",
 ) -> None:
     consolidated = pd.read_pickle(consolidated_path)
-    tables = prepare_consolidated_results_for_publication(consolidated)
-    for band_type, latex_path in latex_paths.items():
-        tables[band_type].to_latex(latex_path)
+    prediction_results = consolidated.xs("prediction", level="band_type")
+    table = prepare_consolidated_results_for_publication(prediction_results)
+    table.to_latex(latex_path)
+
+
+def task_processed_confidence_results_to_latex(
+    consolidated_path: Path = BLD / "simulation" / "consolidated_results.pkl",
+    latex_path: Annotated[Path, Product] = BLD
+    / "simulation"
+    / "consolidated_results_confidence.tex",
+) -> None:
+    consolidated = pd.read_pickle(consolidated_path)
+    confidence_results = consolidated.xs("confidence", level="band_type")
+    table = prepare_consolidated_results_for_publication(confidence_results)
+    table.to_latex(latex_path)

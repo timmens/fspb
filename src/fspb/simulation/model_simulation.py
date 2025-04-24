@@ -22,7 +22,7 @@ def simulate_from_model(
     time_grid: NDArray[np.floating],
     dof: int,
     covariance_type: CovarianceType,
-    length_scale: float = 1,
+    length_scale: float,
     rng: np.random.Generator | None = None,
 ) -> SimulationData:
     """Simulate from the model.
@@ -95,7 +95,9 @@ def _slope_function(time_grid: NDArray[np.floating]) -> NDArray[np.floating]:
         The slope function.
 
     """
-    return time_grid * np.sin(8 * np.pi * time_grid) * np.exp(-3 * time_grid)
+    return (
+        time_grid * np.sin(8 * np.pi * time_grid) * np.exp(-3 * time_grid) + time_grid
+    )
 
 
 # ======================================================================================
@@ -144,10 +146,10 @@ def _predictor_function(
         The predictor variables. Has shape (n_samples, n_points).
 
     """
-    time_grid_half_point = 0.5
-    indicator = (time_grid <= time_grid_half_point).astype(np.int_)
+    upper = 2.5 + 0.25 * np.sin(2 * np.pi * time_grid)
+    lower = -2.5 + 0.25 * np.cos(2 * np.pi * time_grid)
     binary_covariate_boolean_reshaped = binary_covariate.astype(bool).reshape(-1, 1)
-    return np.where(binary_covariate_boolean_reshaped, indicator, 2 * (1 - indicator))
+    return np.where(binary_covariate_boolean_reshaped, upper, lower)
 
 
 # ======================================================================================
@@ -162,7 +164,7 @@ def _simulate_error(
     dof: int,
     covariance_type: CovarianceType,
     rng: np.random.Generator,
-    length_scale: float = 1,
+    length_scale: float,
 ) -> NDArray[np.floating]:
     """Simulate the error processes from a multivariate Student's t distribution.
 
@@ -205,7 +207,7 @@ def _simulate_error(
 def _matern_covariance(
     time_grid: NDArray[np.floating],
     covariance_type: CovarianceType,
-    length_scale: float = 1,
+    length_scale: float,
     sigma: float = 1 / 4,
 ) -> NDArray[np.floating]:
     """Compute the Matern covariance matrix for the given time grid.

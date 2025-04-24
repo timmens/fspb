@@ -68,9 +68,16 @@ class Scenario:
         ]
 
 
-ALL_SCENARIOS = Scenario.from_lists(
+PREDICTION_SCENARIOS = Scenario.from_lists(
     n_samples=[30, 100],
     dof=[5, 15],
     covariance_type=[CovarianceType.STATIONARY, CovarianceType.NON_STATIONARY],
-    band_type=[BandType.CONFIDENCE, BandType.PREDICTION],
+    band_type=[BandType.PREDICTION],
+)
+
+CONFIDENCE_SCENARIOS = Scenario.from_lists(
+    n_samples=[30, 100],
+    dof=[5, 15],
+    covariance_type=[CovarianceType.STATIONARY, CovarianceType.NON_STATIONARY],
+    band_type=[BandType.CONFIDENCE],
 )
