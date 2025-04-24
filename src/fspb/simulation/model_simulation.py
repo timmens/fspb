@@ -51,7 +51,6 @@ def simulate_from_model(
     error = _simulate_error(
         n_samples=n_samples,
         time_grid=time_grid,
-        x=x,
         dof=dof,
         covariance_type=covariance_type,
         rng=rng,
@@ -96,7 +95,7 @@ def _slope_function(time_grid: NDArray[np.floating]) -> NDArray[np.floating]:
 
     """
     return (
-        time_grid * np.sin(8 * np.pi * time_grid) * np.exp(-3 * time_grid) + time_grid
+        time_grid * np.sin(8 * np.pi * time_grid) * np.exp(-3 * time_grid) + 0.9 * time_grid
     )
 
 
@@ -146,8 +145,8 @@ def _predictor_function(
         The predictor variables. Has shape (n_samples, n_points).
 
     """
-    upper = 2.5 + 0.25 * np.sin(2 * np.pi * time_grid)
-    lower = -2.5 + 0.25 * np.cos(2 * np.pi * time_grid)
+    upper = 2 + 0.25 * np.sin(2 * np.pi * time_grid)
+    lower = -2 + 0.25 * np.cos(2 * np.pi * time_grid)
     binary_covariate_boolean_reshaped = binary_covariate.astype(bool).reshape(-1, 1)
     return np.where(binary_covariate_boolean_reshaped, upper, lower)
 
@@ -160,7 +159,6 @@ def _predictor_function(
 def _simulate_error(
     n_samples: int,
     time_grid: NDArray[np.floating],
-    x: NDArray[np.floating],
     dof: int,
     covariance_type: CovarianceType,
     rng: np.random.Generator,
@@ -193,13 +191,9 @@ def _simulate_error(
     u = rng.chisquare(dof, size=n_samples)
     scales = np.sqrt(dof / u)
 
-    z1 = rng.multivariate_normal(
+    z = rng.multivariate_normal(
         mean=np.zeros_like(time_grid), cov=cov_matrix, size=n_samples
     )
-    z2 = rng.multivariate_normal(
-        mean=np.zeros_like(time_grid), cov=cov_matrix, size=n_samples
-    )
-    z = z1 + x[:, 1, :] * z2
 
     return scales[:, np.newaxis] * z
 

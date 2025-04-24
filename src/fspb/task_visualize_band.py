@@ -150,7 +150,7 @@ def task_visualize_band(
     / "visualization"
     / "data"
     / "their_results_as_simulation_results.pkl",
-    processed_paths: list[Path] = [
+    processed_paths: Annotated[list[Path], Product] = [
         BLD / "visualization" / f"seed_{seed}.png" for seed in range(20)
     ],
 ) -> None:
