@@ -49,7 +49,7 @@ for scenario in scenarios:
     # ==================================================================================
 
     @pytask.task(id=f"{scenario.covariance_type}")
-    def task_simulation_study_our_method(
+    def task_simulation_study_our_method_for_visualize(
         _scripts: list[Path] = [
             SRC / "bands" / "band.py",
             SRC / "bands" / "covariance.py",
@@ -85,7 +85,7 @@ for scenario in scenarios:
 
     @pytask.task(id=str(scenario.covariance_type))
     @pytask.mark.skipif(skip_r_analysis, reason="Not running R analysis.")
-    def task_export_simulation_data_to_json(
+    def task_export_simulation_data_to_json_for_visualize(
         our_simulation_results_path: Path = our_results_path,
         json_path: Annotated[Path, Product] = simulation_data_path,
     ) -> None:
@@ -119,7 +119,7 @@ for scenario in scenarios:
         @pytask.mark.skipif(skip_r_analysis, reason="Not running R analysis.")
         @pytask.task(id=f"{scenario.covariance_type}_{prediction_method}")
         @pytask.mark.r(script=SRC / "R" / "conformal_prediction.R")
-        def task_simulation_study_conformal_inference(
+        def task_simulation_study_conformal_inference_for_visualize(
             _scripts: list[Path] = [
                 SRC / "R" / "functions.R",
             ],
@@ -133,7 +133,7 @@ for scenario in scenarios:
 
         @pytask.mark.skipif(skip_r_analysis, reason="Not running R analysis.")
         @pytask.task(id=f"{scenario.covariance_type}_{prediction_method}")
-        def task_process_conformal_inference_simulation_results(
+        def task_process_conformal_inference_simulation_results_for_visualize(
             our_result_path: Path = our_results_path,
             their_result_path: Path = conformal_inference_results_path,
             processed_path: Annotated[Path, Product] = BLD

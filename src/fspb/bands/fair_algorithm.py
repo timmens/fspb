@@ -147,11 +147,12 @@ class StudentTAlgorithm(Algorithm):
         return t.pdf(x, df=self.degrees_of_freedom)
 
     def _scaling(self, x: float) -> float:
-        return t.pdf(x, df=self.degrees_of_freedom)
+        v = self.degrees_of_freedom
+        return (1 + x**2 / v) ** (-v / 2) / (2 * np.pi)
 
     def _scaling_gradient(self, x: float) -> float:
         v = self.degrees_of_freedom
-        return -x * t.pdf(x, df=v) * (v + 1) / (v + x**2)
+        return -x * (2 * np.pi) * (1 + x**2 / v) ** (-v / 2 - 1)
 
 
 def calculate_piecewise_integrals(
