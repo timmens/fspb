@@ -25,9 +25,12 @@ class ConformalInferencePredictionMethod(StrEnum):
 
 
 def parse_enum_type(type_field: T | str, enum_type: type[T]) -> T:
-    if not isinstance(type, enum_type):
+    if isinstance(type_field, enum_type):
+        return type_field
+    try:
+        return enum_type[type_field.upper()]
+    except (KeyError, AttributeError):
         try:
-            type_field = enum_type[type_field.upper()]
-        except KeyError:
+            return enum_type(type_field)
+        except ValueError:
             raise ValueError(f"Invalid type: {type_field}")
-    return type_field

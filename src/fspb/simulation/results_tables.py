@@ -31,7 +31,7 @@ def produce_publication_table(
     var_rename_mapping = {
         "coverage": "Coverage",
         "maximum_width_statistic": "Maximum Width",
-        "band_score": "band score",
+        "band_score": "Band Score",
         "n_samples": "$n$",
         "dof": r"$\nu$",
         "covariance_type": r"$\gamma_{st}$",

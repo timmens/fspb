@@ -95,7 +95,8 @@ def _slope_function(time_grid: NDArray[np.floating]) -> NDArray[np.floating]:
 
     """
     return (
-        time_grid * np.sin(8 * np.pi * time_grid) * np.exp(-3 * time_grid) + 0.9 * time_grid
+        time_grid * np.sin(8 * np.pi * time_grid) * np.exp(-3 * time_grid)
+        + 0.75 * time_grid
     )
 
 
@@ -145,8 +146,8 @@ def _predictor_function(
         The predictor variables. Has shape (n_samples, n_points).
 
     """
-    upper = 2 + 0.25 * np.sin(2 * np.pi * time_grid)
-    lower = -2 + 0.25 * np.cos(2 * np.pi * time_grid)
+    upper = 1.5 + 0.25 * np.sin(2 * np.pi * time_grid)
+    lower = -1.5 + 0.25 * np.cos(2 * np.pi * time_grid)
     binary_covariate_boolean_reshaped = binary_covariate.astype(bool).reshape(-1, 1)
     return np.where(binary_covariate_boolean_reshaped, upper, lower)
 

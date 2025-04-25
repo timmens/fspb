@@ -82,7 +82,6 @@ for scenario in PREDICTION_SCENARIOS + CONFIDENCE_SCENARIOS:
     @pytask.mark.skipif(skip_r_analysis, reason="Not running R analysis.")
     @pytask.task(id=scenario.to_str())
     def task_export_simulation_data_to_json(
-        _scripts: Path = SRC / "config.py",
         our_simulation_results_path: Path = our_results_path,
         json_path: Annotated[Path, Product] = simulation_data_path,
     ) -> None:
@@ -118,7 +117,6 @@ for scenario in PREDICTION_SCENARIOS + CONFIDENCE_SCENARIOS:
         @pytask.mark.r(script=SRC / "R" / "conformal_prediction.R")
         def task_simulation_study_conformal_inference(
             _scripts: list[Path] = [
-                SRC / "config.py",
                 SRC / "R" / "functions.R",
             ],
             functions_script_path: Path = SRC / "R" / "functions.R",

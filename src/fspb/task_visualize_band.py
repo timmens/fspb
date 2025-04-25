@@ -86,7 +86,6 @@ for scenario in scenarios:
     @pytask.task(id=str(scenario.covariance_type))
     @pytask.mark.skipif(skip_r_analysis, reason="Not running R analysis.")
     def task_export_simulation_data_to_json(
-        _scripts: Path = SRC / "config.py",
         our_simulation_results_path: Path = our_results_path,
         json_path: Annotated[Path, Product] = simulation_data_path,
     ) -> None:
@@ -122,7 +121,6 @@ for scenario in scenarios:
         @pytask.mark.r(script=SRC / "R" / "conformal_prediction.R")
         def task_simulation_study_conformal_inference(
             _scripts: list[Path] = [
-                SRC / "config.py",
                 SRC / "R" / "functions.R",
             ],
             functions_script_path: Path = SRC / "R" / "functions.R",
@@ -226,7 +224,7 @@ def _visualize_bands(
         time_grid,
         conformal_inference_mean_band.lower,
         conformal_inference_mean_band.upper,
-        label="Conformal inference (mean)",
+        label="CI (mean)",
         alpha=0.3,
         color=tableau["pink"],
     )
@@ -235,7 +233,7 @@ def _visualize_bands(
         time_grid,
         conformal_inference_linear_band.lower,
         conformal_inference_linear_band.upper,
-        label="Conformal inference (linear)",
+        label="CI (linear)",
         alpha=0.5,
         color=tableau["green"],
     )
@@ -291,7 +289,7 @@ def _visualize_bands(
             "Our",
             r"$Y_{\textsf{new}}(t)$",
             "Conformal inference (linear)",
-            r"$\hat{Y}_{\textsf{new}}(t)$",
+            r"$X_{\textsf{new}}(t)^{\mathsf{T}} \hat{\beta}(t)$",
             "Conformal inference (mean)",
         ],
         frameon=False,

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import socket
 from pathlib import Path
 import itertools
 from typing import Literal, TypedDict
@@ -20,6 +21,16 @@ BLD_FIGURES = BLD / "figures"
 BLD_VISUALIZATION = BLD / "visualization"
 
 SKIP_R = False
+
+# If running on Tim's laptop (thinky), move results to paper directory
+if socket.gethostname() == "thinky":
+    MOVE_RESULTS_TO_PAPER_DIR = True
+    PAPER_BLD = Path(
+        "/home/tim/sciebo/PRJ_Creutzinger_Liebl_Mensinger_Sharp/bld"
+    ).resolve()
+else:
+    MOVE_RESULTS_TO_PAPER_DIR = False
+    PAPER_BLD = Path("Not implemented.")
 
 
 class ScenarioDict(TypedDict):

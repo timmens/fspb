@@ -12,21 +12,27 @@ file_type_to_write_method = {
 }
 
 for file_type, write_method in file_type_to_write_method.items():
+    for metric in ("Coverage", "Maximum Width", "Band Score"):
+        _metric_id = metric.lower().replace(" ", "_")
 
-    @pytask.task(id=file_type)
-    def task_produce_prediction_table(
-        consolidated_path: Path = BLD_SIMULATION_PROCESSED / "consolidated.pkl",
-        product_path: Annotated[Path, Product] = BLD_TABLES / f"prediction.{file_type}",
-    ) -> None:
-        consolidated: pd.DataFrame = pd.read_pickle(consolidated_path)
-        prediction_results = consolidated.xs("prediction", level="band_type")
-        table = produce_publication_table(prediction_results)  # type: ignore[arg-type]
-        getattr(table, write_method)(product_path)
+        @pytask.task(id=f"{file_type}_{_metric_id}")
+        def task_produce_prediction_table(
+            consolidated_path: Path = BLD_SIMULATION_PROCESSED / "consolidated.pkl",
+            product_path: Annotated[Path, Product] = BLD_TABLES
+            / f"prediction_{_metric_id}.{file_type}",
+            write_method: str = write_method,
+            metric: str = metric,
+        ) -> None:
+            consolidated: pd.DataFrame = pd.read_pickle(consolidated_path)
+            prediction_results = consolidated.xs("prediction", level="band_type")
+            table = produce_publication_table(prediction_results)  # type: ignore[arg-type]
+            getattr(table[metric], write_method)(product_path)
 
     @pytask.task(id=file_type)
     def task_produce_confidence_table(
         consolidated_path: Path = BLD_SIMULATION_PROCESSED / "consolidated.pkl",
         product_path: Annotated[Path, Product] = BLD_TABLES / f"confidence.{file_type}",
+        write_method: str = write_method,
     ) -> None:
         consolidated: pd.DataFrame = pd.read_pickle(consolidated_path)
         confidence_results = consolidated.xs("confidence", level="band_type")

@@ -100,7 +100,7 @@ def task_consolidate_simulation_results(
             conformal_inference_mean_results,
             conformal_inference_linear_results,
         ],
-        keys=["Ours", "Conformal Inference (Mean)", "Conformal Inference (Linear)"],
+        keys=["Ours", "CI (Mean)", "CI (Linear)"],
         names=["Method"],
     )
     out.to_pickle(consolidated_path)
