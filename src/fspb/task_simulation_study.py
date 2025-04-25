@@ -4,16 +4,23 @@ from typing import Annotated
 from pytask import Product
 import pandas as pd
 import json
-from fspb.types import BandType
+from fspb.types import BandType, ConformalInferencePredictionMethod
 from fspb.bands.band import BAND_OPTIONS, BandOptions
-from fspb.config import PREDICTION_SCENARIOS, CONFIDENCE_SCENARIOS, SKIP_R
+from fspb.config import (
+    SRC,
+    PREDICTION_SCENARIOS,
+    CONFIDENCE_SCENARIOS,
+    SKIP_R,
+    BLD_SIMULATION,
+    BLD_SIMULATION_OUR,
+    BLD_SIMULATION_CONFORMAL_INFERENCE,
+)
 from fspb.simulation.simulation_study import (
     simulation_study,
     SimulationOptions,
     SingleSimulationResult,
     SimulationResult,
 )
-from fspb.config import SRC, BLD
 
 
 # ======================================================================================
@@ -22,7 +29,7 @@ from fspb.config import SRC, BLD
 
 
 for scenario in PREDICTION_SCENARIOS + CONFIDENCE_SCENARIOS:
-    pickle_path = BLD / "simulation" / "pickle" / f"{scenario.to_str()}.pkl"
+    our_results_path = BLD_SIMULATION_OUR / f"{scenario.to_str()}.pkl"
 
     # Scenario-specific Options
     # ==================================================================================
@@ -40,7 +47,7 @@ for scenario in PREDICTION_SCENARIOS + CONFIDENCE_SCENARIOS:
     # ==================================================================================
 
     @pytask.task(id=scenario.to_str())
-    def task_simulation_study(
+    def task_simulation_study_our_method(
         _scripts: list[Path] = [
             SRC / "bands" / "band.py",
             SRC / "bands" / "covariance.py",
@@ -49,7 +56,7 @@ for scenario in PREDICTION_SCENARIOS + CONFIDENCE_SCENARIOS:
             SRC / "simulation" / "simulation_study.py",
             SRC / "simulation" / "model_simulation.py",
         ],
-        result_path: Annotated[Path, Product] = pickle_path,
+        result_path: Annotated[Path, Product] = our_results_path,
         simulation_options: SimulationOptions = simulation_options,
         band_options: BandOptions = band_options,
     ) -> None:
@@ -70,16 +77,16 @@ for scenario in PREDICTION_SCENARIOS + CONFIDENCE_SCENARIOS:
     # Convert simulation data to json
     # ==================================================================================
 
-    json_path = BLD / "simulation" / "json" / f"{scenario.to_str()}.json"
+    simulation_data_path = BLD_SIMULATION / "data" / f"{scenario.to_str()}.json"
 
     @pytask.mark.skipif(skip_r_analysis, reason="Not running R analysis.")
     @pytask.task(id=scenario.to_str())
     def task_export_simulation_data_to_json(
         _scripts: Path = SRC / "config.py",
-        simulation_data_path: Path = pickle_path,
-        json_path: Annotated[Path, Product] = json_path,
+        our_simulation_results_path: Path = our_results_path,
+        json_path: Annotated[Path, Product] = simulation_data_path,
     ) -> None:
-        sim_result: SimulationResult = pd.read_pickle(simulation_data_path)
+        sim_result: SimulationResult = pd.read_pickle(our_simulation_results_path)
         results: list[SingleSimulationResult] = sim_result.simulation_results
 
         data = []
@@ -99,18 +106,25 @@ for scenario in PREDICTION_SCENARIOS + CONFIDENCE_SCENARIOS:
     # Run conformal inference in R
     # ==================================================================================
 
-    product_path = BLD / "simulation" / "R" / f"{scenario.to_str()}.json"
+    for prediction_method in ConformalInferencePredictionMethod:
+        conformal_inference_results_path = (
+            BLD_SIMULATION_CONFORMAL_INFERENCE
+            / str(prediction_method)
+            / f"{scenario.to_str()}.json"
+        )
 
-    @pytask.mark.skipif(skip_r_analysis, reason="Not running R analysis.")
-    @pytask.task(id=scenario.to_str())
-    @pytask.mark.r(script=SRC / "R" / "conformal_prediction.R")
-    def task_simulation_R(
-        _scripts: list[Path] = [
-            SRC / "config.py",
-            SRC / "R" / "functions.R",
-        ],
-        functions_script_path: Path = SRC / "R" / "functions.R",
-        simulation_data_path: Path = json_path,
-        results_path: Annotated[Path, Product] = product_path,
-    ) -> None:
-        pass
+        @pytask.mark.skipif(skip_r_analysis, reason="Not running R analysis.")
+        @pytask.task(id=f"{scenario.to_str()}-m={prediction_method}")
+        @pytask.mark.r(script=SRC / "R" / "conformal_prediction.R")
+        def task_simulation_study_conformal_inference(
+            _scripts: list[Path] = [
+                SRC / "config.py",
+                SRC / "R" / "functions.R",
+            ],
+            functions_script_path: Path = SRC / "R" / "functions.R",
+            simulation_data_path: Path = simulation_data_path,
+            significance_level: float = band_options.significance_level,
+            fit_method: str = str(prediction_method),
+            results_path: Annotated[Path, Product] = conformal_inference_results_path,
+        ) -> None:
+            pass

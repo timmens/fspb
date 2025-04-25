@@ -77,12 +77,21 @@ concurrent = function() {
 #' Fit conformal inference bands.
 #'
 #' @param data A list containing the extracted data components.
+#' @param significance_level The significance level.
+#' @param fit_method The method to use for predicting the new function values, given
+#'   the training data. Can be "mean" or "linear".
 #' @return A result object from conformalInference.fd::conformal.fun.split.
-fit_conformal_inference = function(data) {
+fit_conformal_inference = function(data, significance_level, fit_method) {
 
   n_samples = length(data[["y"]])
 
-  train_and_pred_functions = concurrent()
+  if (fit_method == "mean") {
+    train_and_pred_functions = conformalInference.fd::mean_lists()
+  } else if (fit_method == "linear") {
+    train_and_pred_functions = concurrent()
+  } else {
+    stop("Invalid fit method: ", fit_method)
+  }
 
   time_grid = replicate(30, data[["time_grid"]], simplify = FALSE)
 
@@ -99,7 +108,7 @@ fit_conformal_inference = function(data) {
     x0=x0,
     train.fun = train_and_pred_functions[["train.fun"]],
     predict.fun = train_and_pred_functions[["predict.fun"]],
-    alpha = 0.1,
+    alpha = significance_level,
     split = NULL,
     seed = FALSE,
     randomized = TRUE,

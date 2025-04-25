@@ -11,6 +11,12 @@ SRC = Path(__file__).parent.resolve()
 ROOT = SRC.parent.parent.resolve()
 
 BLD = ROOT / "bld"
+BLD_SIMULATION = BLD / "simulation"
+BLD_SIMULATION_OUR = BLD_SIMULATION / "our"
+BLD_SIMULATION_CONFORMAL_INFERENCE = BLD_SIMULATION / "conformal_inference"
+BLD_SIMULATION_PROCESSED = BLD_SIMULATION / "processed"
+BLD_TABLES = BLD / "tables"
+BLD_FIGURES = BLD / "figures"
 
 SKIP_R = False
 

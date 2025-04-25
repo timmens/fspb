@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from numpy.typing import NDArray
 
-from fspb.config import BLD, SRC
+from fspb.config import SRC, BLD_FIGURES
 from fspb.simulation.model_simulation import (
     CovarianceType,
     generate_default_time_grid,
@@ -19,7 +19,7 @@ FIG_FONT_SIZE = 10
 
 def task_visualize_outcome(
     _script: Path = SRC / "simulation" / "model_simulation.py",
-    path_figure: Annotated[Path, Product] = BLD / "figures" / "outcomes.pdf",
+    path_figure: Annotated[Path, Product] = BLD_FIGURES / "outcomes.pdf",
 ) -> None:
     """Save Figure XXX for paper."""
     data = _generate_outcome_figure_data()

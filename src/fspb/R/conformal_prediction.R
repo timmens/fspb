@@ -8,6 +8,8 @@ config = jsonlite::read_json(path_to_json)
 
 functions_script_path = config[["functions_script_path"]]
 simulation_data_path = config[["simulation_data_path"]]
+significance_level = config[["significance_level"]]
+fit_method = config[["fit_method"]]
 results_path = config[["results_path"]]
 
 # ======================================================================================
@@ -29,7 +31,11 @@ for (iteration in seq_along(simulation_data)) {
 
   data = extract_data_components(simulation_data[[iteration]])
 
-  result = fit_conformal_inference(data)
+  result = fit_conformal_inference(
+    data,
+    significance_level = significance_level,
+    fit_method = fit_method
+  )
 
   processed = process_result(result)
 

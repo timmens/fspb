@@ -19,6 +19,11 @@ class DistributionType(StrEnum):
     STUDENT_T = auto()
 
 
+class ConformalInferencePredictionMethod(StrEnum):
+    MEAN = auto()
+    LINEAR = auto()
+
+
 def parse_enum_type(type_field: T | str, enum_type: type[T]) -> T:
     if not isinstance(type, enum_type):
         try:
