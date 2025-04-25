@@ -17,6 +17,7 @@ BLD_SIMULATION_CONFORMAL_INFERENCE = BLD_SIMULATION / "conformal_inference"
 BLD_SIMULATION_PROCESSED = BLD_SIMULATION / "processed"
 BLD_TABLES = BLD / "tables"
 BLD_FIGURES = BLD / "figures"
+BLD_VISUALIZATION = BLD / "visualization"
 
 SKIP_R = False
 

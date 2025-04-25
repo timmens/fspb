@@ -5,7 +5,7 @@ from pytask import Product
 import pandas as pd
 import json
 from fspb.simulation.processing import their_results_to_simulation_results_object
-from fspb.types import BandType, CovarianceType
+from fspb.types import BandType, CovarianceType, ConformalInferencePredictionMethod
 from fspb.bands.band import BAND_OPTIONS, BandOptions
 from fspb.config import Scenario
 from fspb.simulation.simulation_study import (
@@ -14,153 +14,181 @@ from fspb.simulation.simulation_study import (
     SingleSimulationResult,
     SimulationResult,
 )
-from fspb.config import SRC, BLD
+from fspb.config import SRC, BLD, BLD_VISUALIZATION, SKIP_R
 
 import matplotlib.pyplot as plt
+from fspb.bands.band import Band
 
+N_TRIALS = 1
 
-scenario = Scenario(
-    n_samples=30,
-    dof=15,
-    covariance_type=CovarianceType.STATIONARY,
-    band_type=BandType.PREDICTION,
+scenarios = Scenario.from_lists(
+    n_samples=[30],
+    dof=[15],
+    covariance_type=[CovarianceType.STATIONARY, CovarianceType.NON_STATIONARY],
+    band_type=[BandType.PREDICTION],
 )
 
-pickle_path = BLD / "visualization" / "data" / f"{scenario.to_str()}.pkl"
-
-# Scenario-specific Options
-# ==================================================================================
-
-simulation_options = SimulationOptions(
-    n_samples=scenario.n_samples,
-    dof=scenario.dof,
-    covariance_type=scenario.covariance_type,
-    length_scale=0.4,
-)
-
-band_options = BAND_OPTIONS[scenario.band_type]
-
-# Simulate data and run simulation study
-# ==================================================================================
-
-
-@pytask.task(id=scenario.to_str())
-def task_simulation_study(
-    _scripts: list[Path] = [
-        SRC / "bands" / "band.py",
-        SRC / "bands" / "covariance.py",
-        SRC / "bands" / "fair_algorithm.py",
-        SRC / "bands" / "min_width_algorithm.py",
-        SRC / "simulation" / "simulation_study.py",
-        SRC / "simulation" / "model_simulation.py",
-    ],
-    result_path: Annotated[Path, Product] = pickle_path,
-    simulation_options: SimulationOptions = simulation_options,
-    band_options: BandOptions = band_options,
-) -> None:
-    results = simulation_study(
-        n_simulations=20,
-        simulation_options=simulation_options,
-        band_options=band_options,
-        n_cores=4,
-        seed=0,
+for scenario in scenarios:
+    our_results_path = (
+        BLD_VISUALIZATION / "data" / f"our_{scenario.covariance_type}.pkl"
     )
-    pd.to_pickle(results, result_path)
 
+    # Scenario-specific Options
+    # ==================================================================================
 
-# Convert simulation data to json
-# ==================================================================================
+    simulation_options = SimulationOptions(
+        n_samples=scenario.n_samples,
+        dof=scenario.dof,
+        covariance_type=scenario.covariance_type,
+        length_scale=0.4,
+    )
 
-json_path = BLD / "visualization" / "data" / f"{scenario.to_str()}_raw.json"
+    band_options = BAND_OPTIONS[scenario.band_type]
 
+    # Simulate data and run simulation study
+    # ==================================================================================
 
-@pytask.task(id=scenario.to_str())
-def task_export_simulation_data_to_json(
-    _scripts: Path = SRC / "config.py",
-    simulation_data_path: Path = pickle_path,
-    json_path: Annotated[Path, Product] = json_path,
-) -> None:
-    sim_result: SimulationResult = pd.read_pickle(simulation_data_path)
-    results: list[SingleSimulationResult] = sim_result.simulation_results
+    @pytask.task(id=f"{scenario.covariance_type}")
+    def task_simulation_study_our_method(
+        _scripts: list[Path] = [
+            SRC / "bands" / "band.py",
+            SRC / "bands" / "covariance.py",
+            SRC / "bands" / "fair_algorithm.py",
+            SRC / "bands" / "min_width_algorithm.py",
+            SRC / "simulation" / "simulation_study.py",
+            SRC / "simulation" / "model_simulation.py",
+        ],
+        result_path: Annotated[Path, Product] = our_results_path,
+        simulation_options: SimulationOptions = simulation_options,
+        band_options: BandOptions = band_options,
+    ) -> None:
+        results = simulation_study(
+            n_simulations=N_TRIALS,
+            simulation_options=simulation_options,
+            band_options=band_options,
+            n_cores=10,
+            seed=3,
+        )
+        pd.to_pickle(results, result_path)
 
-    data = []
-    for r in results:
-        item = {
-            "y": r.data.y.tolist(),
-            "x": r.data.x.tolist(),
-            "time_grid": r.data.time_grid.tolist(),
-            "new_y": r.new_data.y.tolist(),
-            "new_x": r.new_data.x.tolist(),
+    # Skip confidence band simulation in R
+    # ==================================================================================
+
+    skip_r_analysis = SKIP_R or scenario.band_type == BandType.CONFIDENCE
+
+    # Convert simulation data to json
+    # ==================================================================================
+
+    simulation_data_path = (
+        BLD_VISUALIZATION / "data" / f"data_{scenario.covariance_type}.json"
+    )
+
+    @pytask.task(id=str(scenario.covariance_type))
+    @pytask.mark.skipif(skip_r_analysis, reason="Not running R analysis.")
+    def task_export_simulation_data_to_json(
+        _scripts: Path = SRC / "config.py",
+        our_simulation_results_path: Path = our_results_path,
+        json_path: Annotated[Path, Product] = simulation_data_path,
+    ) -> None:
+        sim_result: SimulationResult = pd.read_pickle(our_simulation_results_path)
+        results: list[SingleSimulationResult] = sim_result.simulation_results
+
+        data = []
+        for r in results:
+            item = {
+                "y": r.data.y.tolist(),
+                "x": r.data.x.tolist(),
+                "time_grid": r.data.time_grid.tolist(),
+                "new_y": r.new_data.y.tolist(),
+                "new_x": r.new_data.x.tolist(),
+            }
+            data.append(item)
+
+        with open(json_path, "w") as file:
+            json.dump(data, file)
+
+    # Run conformal inference in R
+    # ==================================================================================
+
+    for prediction_method in ConformalInferencePredictionMethod:
+        conformal_inference_results_path = (
+            BLD_VISUALIZATION
+            / "data"
+            / f"conformal_inference_{prediction_method}_{scenario.covariance_type}.json"
+        )
+
+        @pytask.mark.skipif(skip_r_analysis, reason="Not running R analysis.")
+        @pytask.task(id=f"{scenario.covariance_type}_{prediction_method}")
+        @pytask.mark.r(script=SRC / "R" / "conformal_prediction.R")
+        def task_simulation_study_conformal_inference(
+            _scripts: list[Path] = [
+                SRC / "config.py",
+                SRC / "R" / "functions.R",
+            ],
+            functions_script_path: Path = SRC / "R" / "functions.R",
+            simulation_data_path: Path = simulation_data_path,
+            significance_level: float = band_options.significance_level,
+            fit_method: str = str(prediction_method),
+            results_path: Annotated[Path, Product] = conformal_inference_results_path,
+        ) -> None:
+            pass
+
+        @pytask.mark.skipif(skip_r_analysis, reason="Not running R analysis.")
+        @pytask.task(id=f"{scenario.covariance_type}_{prediction_method}")
+        def task_process_conformal_inference_simulation_results(
+            our_result_path: Path = our_results_path,
+            their_result_path: Path = conformal_inference_results_path,
+            processed_path: Annotated[Path, Product] = BLD
+            / "visualization"
+            / "data"
+            / f"conformal_inference_{prediction_method}_{scenario.covariance_type}.pkl",
+        ) -> None:
+            their_results = pd.read_json(their_result_path)
+            our_results = pd.read_pickle(our_result_path)
+            processed = their_results_to_simulation_results_object(
+                their_results=[their_results],
+                our_results=[our_results],
+                scenarios=[scenario],
+            )
+            pd.to_pickle(processed[0], processed_path)
+
+    # Visualize band
+    # ======================================================================================
+
+    @pytask.task(id=str(scenario.covariance_type))
+    def task_visualize_band(
+        our_result_path: Path = our_results_path,
+        conformal_inference_result_paths: dict[str, Path] = {
+            str(prediction_method): BLD
+            / "visualization"
+            / "data"
+            / f"conformal_inference_{prediction_method}_{scenario.covariance_type}.pkl"
+            for prediction_method in ConformalInferencePredictionMethod
+        },
+        processed_paths: Annotated[list[Path], Product] = [
+            BLD / "visualization" / f"seed_{seed}_{scenario.covariance_type}.png"
+            for seed in range(N_TRIALS)
+        ],
+    ) -> None:
+        our_result = pd.read_pickle(our_result_path)
+        conformal_inference_results = {
+            method: pd.read_pickle(path)
+            for method, path in conformal_inference_result_paths.items()
         }
-        data.append(item)
-
-    with open(json_path, "w") as file:
-        json.dump(data, file)
-
-
-# Run conformal inference in R
-# ==================================================================================
-
-product_path = BLD / "visualization" / "data" / f"{scenario.to_str()}.json"
-
-
-@pytask.task(id=scenario.to_str())
-@pytask.mark.r(script=SRC / "R" / "conformal_prediction.R")
-def task_simulation_R(
-    _scripts: list[Path] = [
-        SRC / "config.py",
-        SRC / "R" / "functions.R",
-    ],
-    functions_script_path: Path = SRC / "R" / "functions.R",
-    simulation_data_path: Path = json_path,
-    results_path: Annotated[Path, Product] = product_path,
-) -> None:
-    pass
-
-
-# Process simulation results
-# ======================================================================================
-
-
-def task_process_their_simulation_results(
-    their_result_path: Path = product_path,
-    our_result_path: Path = pickle_path,
-    processed_path: Annotated[Path, Product] = BLD
-    / "visualization"
-    / "data"
-    / "their_results_as_simulation_results.pkl",
-) -> None:
-    their_results = pd.read_json(their_result_path)
-    our_results = pd.read_pickle(our_result_path)
-    processed = their_results_to_simulation_results_object(
-        their_results=[their_results],
-        our_results=[our_results],
-        scenarios=[scenario],
-    )
-    pd.to_pickle(processed[0], processed_path)
-
-
-# Visualize band
-# ======================================================================================
-
-
-def task_visualize_band(
-    our_result_path: Path = pickle_path,
-    their_result_path: Path = BLD
-    / "visualization"
-    / "data"
-    / "their_results_as_simulation_results.pkl",
-    processed_paths: Annotated[list[Path], Product] = [
-        BLD / "visualization" / f"seed_{seed}.png" for seed in range(20)
-    ],
-) -> None:
-    our_result = pd.read_pickle(our_result_path)
-    their_result = pd.read_pickle(their_result_path)
-    for seed, processed_path in zip(range(20), processed_paths):
-        ours = our_result.simulation_results[seed]
-        theirs = their_result.simulation_results[seed]
-        fig = visualize_band(ours, theirs)
-        fig.savefig(processed_path)
+        for seed, processed_path in zip(range(N_TRIALS), processed_paths):
+            ours = our_result.simulation_results[seed]
+            conformal_inference_mean = conformal_inference_results[
+                "mean"
+            ].simulation_results[seed]
+            conformal_inference_linear = conformal_inference_results[
+                "linear"
+            ].simulation_results[seed]
+            fig = _visualize_bands(
+                our_sim_result=ours,
+                conformal_inference_mean_band=conformal_inference_mean.band,
+                conformal_inference_linear_band=conformal_inference_linear.band,
+            )
+            fig.savefig(processed_path, bbox_inches="tight")
 
 
 # ======================================================================================
@@ -168,28 +196,108 @@ def task_visualize_band(
 # ======================================================================================
 
 
-def visualize_band(
-    our_result: SingleSimulationResult,
-    their_result: SingleSimulationResult,
-) -> None:
+def _visualize_bands(
+    our_sim_result: SingleSimulationResult,
+    conformal_inference_mean_band: Band,
+    conformal_inference_linear_band: Band,
+) -> plt.Figure:
+    """Create figure showing stationary and non-stationary outcomes."""
+    PAPER_TEXT_WIDTH = 8.5 - 2  # us-letter width in inches minus margin
+    FIG_FONT_SIZE = 10
+
+    plt.style.use("seaborn-v0_8-whitegrid")
+    plt.rc("text", usetex=True)
+    plt.rc("font", family="serif", serif=["Computer Modern Roman"])
+
+    time_grid = our_sim_result.data.time_grid
+    new_y = our_sim_result.new_data.y
+    new_y_hat = our_sim_result.band.estimate
+
+    tableau = {
+        "blue": "#5778a4",
+        "pink": "#f1a2a9",
+        "green": "#6a9f58",
+        "yellow": "#e7ca60",
+    }
+
     fig, ax = plt.subplots()
 
-    time_grid = our_result.data.time_grid
+    conformal_inference_mean_band_ax = ax.fill_between(
+        time_grid,
+        conformal_inference_mean_band.lower,
+        conformal_inference_mean_band.upper,
+        label="Conformal inference (mean)",
+        alpha=0.3,
+        color=tableau["pink"],
+    )
 
-    for result, color, label in [
-        (our_result, "tab:blue", "Our band"),
-        (their_result, "tab:orange", "Their band"),
-    ]:
-        ax.fill_between(
-            time_grid,
-            result.band.lower,
-            result.band.upper,
-            label=label,
-            alpha=0.2,
-            color=color,
-        )
+    conformal_inference_linear_band_ax = ax.fill_between(
+        time_grid,
+        conformal_inference_linear_band.lower,
+        conformal_inference_linear_band.upper,
+        label="Conformal inference (linear)",
+        alpha=0.5,
+        color=tableau["green"],
+    )
 
-    ax.plot(time_grid, result.new_data.y, label="True", color="black")
-    ax.legend()
+    our_sim_result_ax = ax.fill_between(
+        time_grid,
+        our_sim_result.band.lower,
+        our_sim_result.band.upper,
+        label="Our",
+        alpha=0.6,
+        color=tableau["blue"],
+    )
+
+    y_new_hat_ax = ax.plot(
+        time_grid,
+        new_y_hat,
+        label="Estimate",
+        color="black",
+        alpha=0.6,
+        linestyle="--",
+        linewidth=1.5,
+    )
+    y_new_ax = ax.plot(
+        time_grid, new_y, label="True", color=tableau["yellow"], linewidth=2
+    )
+
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.spines["left"].set_visible(False)
+    ax.spines["bottom"].set_visible(False)
+    ax.tick_params(labelsize=FIG_FONT_SIZE)
+    ax.grid(visible=True, linestyle="--", alpha=0.7)
+    ax.set_xlim(0, 1)
+    ax.set_ylim(-3.9, 4.9)
+    ax.set_xticks([0, 0.25, 0.5, 0.75, 1])
+
+    ax.set_xlabel("$t$", fontsize=FIG_FONT_SIZE)
+    fig.text(0, 0.50, r"$Y(t)$", fontsize=FIG_FONT_SIZE, rotation=0)
+
+    fig.tight_layout(rect=(0.01, 0.03, 1, 1))
+    fig.set_size_inches(PAPER_TEXT_WIDTH, 3)
+    fig.subplots_adjust(hspace=-0.15)
+
+    ax.legend(
+        [
+            our_sim_result_ax,
+            y_new_ax[0],
+            conformal_inference_linear_band_ax,
+            y_new_hat_ax[0],
+            conformal_inference_mean_band_ax,
+        ],
+        [
+            "Our",
+            r"$Y_{\textsf{new}}(t)$",
+            "Conformal inference (linear)",
+            r"$\hat{Y}_{\textsf{new}}(t)$",
+            "Conformal inference (mean)",
+        ],
+        frameon=False,
+        ncols=3,
+        loc="lower center",
+        bbox_to_anchor=(0.5, -0.4),
+    )
 
     return fig
