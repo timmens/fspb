@@ -31,8 +31,8 @@ for covariance_type in CovarianceType:
     )
     @pytask.task(id=str(covariance_type))
     def task_move_band_figure(
-        band_figure_path: Path = BLD_VISUALIZATION / f"seed_0_{covariance_type}.png",
-        to_path: Annotated[Path, Product] = PAPER_BLD / f"band_{covariance_type}.png",
+        band_figure_path: Path = BLD_VISUALIZATION / f"seed_0_{covariance_type}.pdf",
+        to_path: Annotated[Path, Product] = PAPER_BLD / f"band_{covariance_type}.pdf",
     ) -> None:
         shutil.copy(band_figure_path, to_path)
 
