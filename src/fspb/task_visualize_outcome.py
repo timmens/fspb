@@ -61,7 +61,7 @@ def _create_outcome_figure(data: dict[str, NDArray[np.floating]]) -> plt.Figure:
         ax.tick_params(labelsize=FIG_FONT_SIZE)
         ax.grid(visible=True, linestyle="--", alpha=0.7)
         ax.set_xlim(0, 1)
-        ax.set_ylim(-3.9, 4.9)
+        ax.set_ylim(-1.1, 2.9)
         ax.set_xticks([0, 0.25, 0.5, 0.75, 1])
 
     fig.text(
@@ -94,7 +94,7 @@ def _create_outcome_figure(data: dict[str, NDArray[np.floating]]) -> plt.Figure:
 
     fig.tight_layout(rect=(0.02, 0.03, 1, 1))
     fig.set_size_inches(PAPER_TEXT_WIDTH, 3)
-    fig.subplots_adjust(hspace=-0.15)
+    fig.subplots_adjust(hspace=0)
     return fig
 
 
