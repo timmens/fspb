@@ -162,7 +162,7 @@ BAND_OPTIONS = {
         band_type=BandType.CONFIDENCE,
         interval_cutoffs=np.array([0, 1 / 3, 2 / 3, 1]),
         significance_level=0.1,
-        distribution_type=DistributionType.STUDENT_T,
+        distribution_type=DistributionType.GAUSSIAN,
         norm_order=2,
         method=BandMethod.FAIR,
     ),

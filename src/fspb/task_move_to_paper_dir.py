@@ -13,15 +13,19 @@ from typing import Annotated
 
 from fspb.types import CovarianceType
 
+for covariance_type in ("stationary", "non_stationary"):
+    outcome_figure_path = BLD_FIGURES / f"outcomes_{covariance_type}.pdf"
+    to_path = PAPER_BLD / f"outcomes_{covariance_type}.pdf"
 
-@pytask.mark.skipif(
-    not MOVE_RESULTS_TO_PAPER_DIR, reason="Not moving results to paper directory."
-)
-def task_move_outcome_figure(
-    outcome_figure_path: Path = BLD_FIGURES / "outcomes.pdf",
-    to_path: Annotated[Path, Product] = PAPER_BLD / "outcomes.pdf",
-) -> None:
-    shutil.copy(outcome_figure_path, to_path)
+    @pytask.task
+    @pytask.mark.skipif(
+        not MOVE_RESULTS_TO_PAPER_DIR, reason="Not moving results to paper directory."
+    )
+    def task_move_outcome_figure(
+        outcome_figure_path: Path = outcome_figure_path,
+        to_path: Annotated[Path, Product] = to_path,
+    ) -> None:
+        shutil.copy(outcome_figure_path, to_path)
 
 
 for covariance_type in CovarianceType:
@@ -48,14 +52,16 @@ def task_move_confidence_simulation_results_table(
     shutil.copy(simulation_results_table_path, to_path)
 
 
-for metric in ("coverage", "maximum_width", "band_score"):
+for covariance_type in ("stationary", "non_stationary"):
 
     @pytask.mark.skipif(
         not MOVE_RESULTS_TO_PAPER_DIR, reason="Not moving results to paper directory."
     )
-    @pytask.task(id=f"prediction_{metric}")
+    @pytask.task(id=f"prediction_{covariance_type}")
     def task_move_prediction_simulation_results_table(
-        simulation_results_table_path: Path = BLD_TABLES / f"prediction_{metric}.tex",
-        to_path: Annotated[Path, Product] = PAPER_BLD / f"prediction_{metric}.tex",
+        simulation_results_table_path: Path = BLD_TABLES
+        / f"prediction_{covariance_type}.tex",
+        to_path: Annotated[Path, Product] = PAPER_BLD
+        / f"prediction_{covariance_type}.tex",
     ) -> None:
         shutil.copy(simulation_results_table_path, to_path)

@@ -19,83 +19,75 @@ FIG_FONT_SIZE = 10
 
 def task_visualize_outcome(
     _script: Path = SRC / "simulation" / "model_simulation.py",
-    path_figure: Annotated[Path, Product] = BLD_FIGURES / "outcomes.pdf",
+    path_figure: Annotated[dict[str, Path], Product] = {
+        "stationary": BLD_FIGURES / "outcomes_stationary.pdf",
+        "non_stationary": BLD_FIGURES / "outcomes_non_stationary.pdf",
+    },
 ) -> None:
     """Save Figure XXX for paper."""
     data = _generate_outcome_figure_data()
-    fig = _create_outcome_figure(data)
-    fig.savefig(path_figure)
+    figures = _create_outcome_figures(data)
+    for key, figure in figures.items():
+        figure.savefig(path_figure[key], bbox_inches="tight")
+        plt.close(figure)
 
 
-def _create_outcome_figure(data: dict[str, NDArray[np.floating]]) -> plt.Figure:
+def _create_outcome_figure(
+    data: dict[str, NDArray[np.floating]],
+    key: str,
+    color: str,
+) -> plt.Figure:
     """Create figure showing stationary and non-stationary outcomes."""
     plt.style.use("seaborn-v0_8-whitegrid")
     plt.rc("text", usetex=True)
     plt.rc("font", family="serif", serif=["Computer Modern Roman"])
 
+    fig, ax = plt.subplots()
+
+    ax.plot(
+        data["time_grid"],
+        data[key],
+        color=color,
+        linewidth=0.9,
+        alpha=0.8,
+    )
+
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.spines["left"].set_visible(False)
+    ax.spines["bottom"].set_visible(False)
+    ax.tick_params(labelsize=FIG_FONT_SIZE)
+    ax.grid(visible=True, linestyle="--", alpha=0.7)
+    ax.set_xlim(0, 1)
+    ax.set_ylim(-0.5, 2.95)
+    ax.set_xticks([0, 0.25, 0.5, 0.75, 1])
+
+    ax.set_xlabel("$t$", fontsize=FIG_FONT_SIZE)
+    fig.text(0, 0.50, "$Y_i(t)$", fontsize=FIG_FONT_SIZE, rotation=0)
+
+    fig.tight_layout(rect=(0, 0, 1, 1))
+    fig.set_size_inches(PAPER_TEXT_WIDTH, 1.5)
+    fig.subplots_adjust(hspace=0)
+    return fig
+
+
+def _create_outcome_figures(
+    data: dict[str, NDArray[np.floating]],
+) -> dict[str, plt.Figure]:
+    """Create figure showing stationary and non-stationary outcomes."""
     tableau_blue = "#5778a4"
     tableau_orange = "#e49444"
 
-    fig, axes = plt.subplots(2, 1, sharex=True, sharey=True)
-
-    axes[0].plot(
-        data["time_grid"],
-        data["stationary_outcomes"],
-        color=tableau_blue,
-        linewidth=0.9,
-        alpha=0.8,
+    fig_stationary = _create_outcome_figure(
+        data, key="stationary_outcomes", color=tableau_blue
     )
-    axes[1].plot(
-        data["time_grid"],
-        data["non_stationary_outcomes"],
-        color=tableau_orange,
-        linewidth=0.9,
-        alpha=0.8,
+    fig_non_stationary = _create_outcome_figure(
+        data, key="non_stationary_outcomes", color=tableau_orange
     )
-
-    for ax in axes:
-        ax.spines["top"].set_visible(False)
-        ax.spines["right"].set_visible(False)
-        ax.spines["left"].set_visible(False)
-        ax.spines["bottom"].set_visible(False)
-        ax.tick_params(labelsize=FIG_FONT_SIZE)
-        ax.grid(visible=True, linestyle="--", alpha=0.7)
-        ax.set_xlim(0, 1)
-        ax.set_ylim(-1.1, 2.9)
-        ax.set_xticks([0, 0.25, 0.5, 0.75, 1])
-
-    fig.text(
-        0.10,
-        0.92,
-        "(a) Stationary",
-        fontsize=FIG_FONT_SIZE,
-        bbox={
-            "facecolor": "white",
-            "alpha": 0.8,
-            "boxstyle": "round,pad=0.4",
-            "edgecolor": "gray",
-        },
-    )
-    fig.text(
-        0.10,
-        0.51,
-        "(b) Non-stationary",
-        fontsize=FIG_FONT_SIZE,
-        bbox={
-            "facecolor": "white",
-            "alpha": 0.8,
-            "boxstyle": "round,pad=0.4",
-            "edgecolor": "gray",
-        },
-    )
-
-    axes[1].set_xlabel("$t$", fontsize=FIG_FONT_SIZE)
-    fig.text(0, 0.50, "$Y_i(t)$", fontsize=FIG_FONT_SIZE, rotation=0)
-
-    fig.tight_layout(rect=(0.02, 0.03, 1, 1))
-    fig.set_size_inches(PAPER_TEXT_WIDTH, 3)
-    fig.subplots_adjust(hspace=0)
-    return fig
+    return {
+        "stationary": fig_stationary,
+        "non_stationary": fig_non_stationary,
+    }
 
 
 def _generate_outcome_figure_data() -> dict[str, NDArray[np.floating]]:
