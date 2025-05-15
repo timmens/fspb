@@ -59,7 +59,7 @@ def _create_outcome_figure(
     ax.tick_params(labelsize=FIG_FONT_SIZE)
     ax.grid(visible=True, linestyle="--", alpha=0.7)
     ax.set_xlim(0, 1)
-    ax.set_ylim(-0.5, 2.95)
+    ax.set_ylim(-1.49, 1.49)
     ax.set_xticks([0, 0.25, 0.5, 0.75, 1])
 
     ax.set_xlabel("$t$", fontsize=FIG_FONT_SIZE)

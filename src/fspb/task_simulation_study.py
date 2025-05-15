@@ -38,7 +38,7 @@ for scenario in PREDICTION_SCENARIOS + CONFIDENCE_SCENARIOS:
         n_samples=scenario.n_samples,
         dof=scenario.dof,
         covariance_type=scenario.covariance_type,
-        length_scale=0.4,
+        length_scale=1.0,
     )
 
     band_options = BAND_OPTIONS[scenario.band_type]
@@ -61,7 +61,7 @@ for scenario in PREDICTION_SCENARIOS + CONFIDENCE_SCENARIOS:
         band_options: BandOptions = band_options,
     ) -> None:
         results = simulation_study(
-            n_simulations=500,
+            n_simulations=1_000,
             simulation_options=simulation_options,
             band_options=band_options,
             n_cores=10,

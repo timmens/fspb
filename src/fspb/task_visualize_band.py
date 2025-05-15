@@ -14,12 +14,13 @@ from fspb.simulation.simulation_study import (
     SingleSimulationResult,
     SimulationResult,
 )
-from fspb.config import SRC, BLD, BLD_VISUALIZATION, SKIP_R
+from fspb.config import SRC, BLD_FIGURES, SKIP_R
 
 import matplotlib.pyplot as plt
 from fspb.bands.band import Band
 
 N_TRIALS = 1
+BASE_SEED = 10
 
 scenarios = Scenario.from_lists(
     n_samples=[30],
@@ -29,9 +30,7 @@ scenarios = Scenario.from_lists(
 )
 
 for scenario in scenarios:
-    our_results_path = (
-        BLD_VISUALIZATION / "data" / f"our_{scenario.covariance_type}.pkl"
-    )
+    our_results_path = BLD_FIGURES / "data" / f"our_{scenario.covariance_type}.pkl"
 
     # Scenario-specific Options
     # ==================================================================================
@@ -67,7 +66,7 @@ for scenario in scenarios:
             simulation_options=simulation_options,
             band_options=band_options,
             n_cores=10,
-            seed=3,
+            seed=BASE_SEED,
         )
         pd.to_pickle(results, result_path)
 
@@ -80,7 +79,7 @@ for scenario in scenarios:
     # ==================================================================================
 
     simulation_data_path = (
-        BLD_VISUALIZATION / "data" / f"data_{scenario.covariance_type}.json"
+        BLD_FIGURES / "data" / f"data_{scenario.covariance_type}.json"
     )
 
     @pytask.task(id=str(scenario.covariance_type))
@@ -110,9 +109,7 @@ for scenario in scenarios:
     # ==================================================================================
 
     conformal_inference_results_path = (
-        BLD_VISUALIZATION
-        / "data"
-        / f"conformal_inference_{scenario.covariance_type}.json"
+        BLD_FIGURES / "data" / f"conformal_inference_{scenario.covariance_type}.json"
     )
 
     @pytask.mark.skipif(skip_r_analysis, reason="Not running R analysis.")
@@ -131,9 +128,7 @@ for scenario in scenarios:
         pass
 
     conformal_inference_processed_path = (
-        BLD_VISUALIZATION
-        / "data"
-        / f"conformal_inference_{scenario.covariance_type}.pkl"
+        BLD_FIGURES / "data" / f"conformal_inference_{scenario.covariance_type}.pkl"
     )
 
     @pytask.mark.skipif(skip_r_analysis, reason="Not running R analysis.")
@@ -160,7 +155,7 @@ for scenario in scenarios:
         our_result_path: Path = our_results_path,
         conformal_inference_result_path: Path = conformal_inference_processed_path,
         processed_paths: Annotated[list[Path], Product] = [
-            BLD / "visualization" / f"seed_{seed}_{scenario.covariance_type}.pdf"
+            BLD_FIGURES / f"seed_{seed}_{scenario.covariance_type}.pdf"
             for seed in range(N_TRIALS)
         ],
     ) -> None:
@@ -245,7 +240,7 @@ def _visualize_bands(
     ax.tick_params(labelsize=FIG_FONT_SIZE)
     ax.grid(visible=True, linestyle="--", alpha=0.7)
     ax.set_xlim(0, 1)
-    ax.set_ylim(-0.8, 3.6)
+    ax.set_ylim(-2.9, 2.9)
     ax.set_xticks([0, 0.25, 0.5, 0.75, 1])
 
     ax.set_xlabel("$t$", fontsize=FIG_FONT_SIZE)
