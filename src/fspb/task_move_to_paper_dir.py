@@ -10,13 +10,12 @@ from pathlib import Path
 from pytask import Product
 from typing import Annotated
 
-from fspb.types import CovarianceType
 
 for covariance_type in ("stationary", "non_stationary"):
     outcome_figure_path = BLD_FIGURES / f"outcomes_{covariance_type}.pdf"
     to_path = PAPER_BLD / f"outcomes_{covariance_type}.pdf"
 
-    @pytask.task
+    @pytask.task(id=str(covariance_type))
     @pytask.mark.skipif(
         not MOVE_RESULTS_TO_PAPER_DIR, reason="Not moving results to paper directory."
     )
@@ -27,17 +26,15 @@ for covariance_type in ("stationary", "non_stationary"):
         shutil.copy(outcome_figure_path, to_path)
 
 
-for covariance_type in CovarianceType:
-
-    @pytask.mark.skipif(
-        not MOVE_RESULTS_TO_PAPER_DIR, reason="Not moving results to paper directory."
-    )
-    @pytask.task(id=str(covariance_type))
-    def task_move_band_figure(
-        band_figure_path: Path = BLD_FIGURES / f"seed_0_{covariance_type}.pdf",
-        to_path: Annotated[Path, Product] = PAPER_BLD / f"band_{covariance_type}.pdf",
-    ) -> None:
-        shutil.copy(band_figure_path, to_path)
+@pytask.mark.skipif(
+    not MOVE_RESULTS_TO_PAPER_DIR, reason="Not moving results to paper directory."
+)
+@pytask.task(id=str(covariance_type))
+def task_move_band_figure(
+    band_figure_path: Path = BLD_FIGURES / "band_seed_0.pdf",
+    to_path: Annotated[Path, Product] = PAPER_BLD / "band.pdf",
+) -> None:
+    shutil.copy(band_figure_path, to_path)
 
 
 @pytask.mark.skipif(

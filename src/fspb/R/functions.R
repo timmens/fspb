@@ -83,6 +83,8 @@ concurrent = function() {
 #' @return A result object from conformalInference.fd::conformal.fun.split.
 fit_conformal_inference = function(data, significance_level, fit_method) {
 
+  set.seed(0)
+
   n_samples = length(data[["y"]])
 
   if (fit_method == "mean") {

@@ -147,28 +147,51 @@ for scenario in scenarios:
         )
         pd.to_pickle(processed[0], processed_path)
 
-    # Visualize band
-    # ======================================================================================
+# Visualize band
+# ======================================================================================
 
-    @pytask.task(id=str(scenario.covariance_type))
-    def task_visualize_band(
-        our_result_path: Path = our_results_path,
-        conformal_inference_result_path: Path = conformal_inference_processed_path,
-        processed_paths: Annotated[list[Path], Product] = [
-            BLD_FIGURES / f"seed_{seed}_{scenario.covariance_type}.pdf"
-            for seed in range(N_TRIALS)
-        ],
-    ) -> None:
-        our_result = pd.read_pickle(our_result_path)
-        conformal_inference_results = pd.read_pickle(conformal_inference_result_path)
-        for seed, processed_path in zip(range(N_TRIALS), processed_paths):
-            ours = our_result.simulation_results[seed]
-            conformal_inference = conformal_inference_results.simulation_results[seed]
-            fig = _visualize_bands(
-                our_sim_result=ours,
-                conformal_inference_band=conformal_inference.band,
-            )
-            fig.savefig(processed_path, bbox_inches="tight")
+
+def task_visualize_band(
+    our_result_paths: dict[str, Path] = {
+        "stationary": BLD_FIGURES / "data" / f"our_{CovarianceType.STATIONARY}.pkl",
+        "non_stationary": BLD_FIGURES
+        / "data"
+        / f"our_{CovarianceType.NON_STATIONARY}.pkl",
+    },
+    conformal_inference_result_paths: dict[str, Path] = {
+        "stationary": BLD_FIGURES
+        / "data"
+        / f"conformal_inference_{CovarianceType.STATIONARY}.pkl",
+        "non_stationary": BLD_FIGURES
+        / "data"
+        / f"conformal_inference_{CovarianceType.NON_STATIONARY}.pkl",
+    },
+    processed_paths: Annotated[list[Path], Product] = [
+        BLD_FIGURES / f"band_seed_{seed}.pdf"  # type: ignore[name-defined]
+        for seed in range(N_TRIALS)
+    ],
+) -> None:
+    our_results = {
+        cov_type: pd.read_pickle(path) for cov_type, path in our_result_paths.items()
+    }
+    conformal_inference_results = {
+        cov_type: pd.read_pickle(path)
+        for cov_type, path in conformal_inference_result_paths.items()
+    }
+    for seed, processed_path in zip(range(N_TRIALS), processed_paths):
+        ours = {
+            cov_type: res.simulation_results[seed]
+            for cov_type, res in our_results.items()
+        }
+        conformal_inference = {
+            cov_type: res.simulation_results[seed]
+            for cov_type, res in conformal_inference_results.items()
+        }
+        fig = visualize_bands(
+            our_sim_result=ours,
+            conformal_inference_sim_result=conformal_inference,
+        )
+        fig.savefig(processed_path, bbox_inches="tight")
 
 
 # ======================================================================================
@@ -176,17 +199,93 @@ for scenario in scenarios:
 # ======================================================================================
 
 
-def _visualize_bands(
-    our_sim_result: SingleSimulationResult,
-    conformal_inference_band: Band,
+def visualize_bands(
+    our_sim_result: dict[str, SingleSimulationResult],
+    conformal_inference_sim_result: dict[str, SingleSimulationResult],
 ) -> plt.Figure:
-    """Create figure showing stationary and non-stationary outcomes."""
+    """Visualize the bands for the stationary and non-stationary cases."""
     PAPER_TEXT_WIDTH = 8.5 - 2  # us-letter width in inches minus margin
-    FIG_FONT_SIZE = 10
+    FIG_FONT_SIZE = 11
 
     plt.style.use("seaborn-v0_8-whitegrid")
     plt.rc("text", usetex=True)
     plt.rc("font", family="serif", serif=["Computer Modern Roman"])
+
+    fig, axes = plt.subplots(
+        nrows=1,
+        ncols=2,
+        figsize=(PAPER_TEXT_WIDTH, 3),
+        sharex=True,
+        sharey=True,
+    )
+
+    plot_data = {
+        "stationary": {
+            "title": "(a) Stationary",
+            "our_data": our_sim_result["stationary"],
+            "ci_data": conformal_inference_sim_result["stationary"],
+            "ax": axes[0],
+        },
+        "non_stationary": {
+            "title": "(b) Non-stationary",
+            "our_data": our_sim_result["non_stationary"],
+            "ci_data": conformal_inference_sim_result["non_stationary"],
+            "ax": axes[1],
+        },
+    }
+
+    for name, data in plot_data.items():
+        ax = _visualize_bands(
+            our_sim_result=data["our_data"],
+            conformal_inference_band=data["ci_data"].band,
+            ax=data["ax"],
+        )
+
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(True)
+        ax.spines["left"].set_visible(True)
+        ax.spines["bottom"].set_visible(False)
+
+        ax.tick_params(labelsize=FIG_FONT_SIZE)
+        ax.grid(visible=True, linestyle="--", alpha=0.7)
+        ax.set_xlim(0, 1)
+        ax.set_ylim(-2.9, 3.9)
+        ax.set_xticks([0, 1 / 3, 2 / 3, 1])
+        ax.set_xticklabels(["$0$", "$1/3$", "$2/3$", "$1$"])
+        ax.set_yticks([-2, 0, 2])
+        ax.set_yticklabels(["$-2$", "$0$", "$2$"])
+        ax.set_xlabel("$t$", fontsize=FIG_FONT_SIZE)
+        ax.set_title(data["title"], fontsize=FIG_FONT_SIZE)
+
+    # set legend
+    handles, _ = axes[0].get_legend_handles_labels()
+    fig.legend(
+        handles,
+        [
+            "Our",
+            "Conformal inference",
+            r"$Y_{\textsf{new}}(t)$",
+            r"$X_{\textsf{new}}(t)^{\mathsf{T}} \hat{\beta}(t)$",
+        ],
+        ncol=4,
+        loc="lower center",
+        bbox_to_anchor=(0.52, -0.04),
+        fontsize=FIG_FONT_SIZE,
+    )
+
+    # fig.text(0, 0.48, r"$Y(t)$", fontsize=FIG_FONT_SIZE, rotation=0)
+    fig.tight_layout(rect=(0.01, 0.03, 1, 1))
+    fig.set_size_inches(PAPER_TEXT_WIDTH, 3)
+    return fig
+
+
+def _visualize_bands(
+    our_sim_result: SingleSimulationResult,
+    conformal_inference_band: Band,
+    ax: plt.Axes,
+    set_legend: bool = False,
+) -> plt.Axes:
+    """Create figure showing stationary or non-stationary outcomes."""
 
     time_grid = our_sim_result.data.time_grid
     new_y = our_sim_result.new_data.y
@@ -200,27 +299,30 @@ def _visualize_bands(
         "yellow": "#e7ca60",
     }
 
-    fig, ax = plt.subplots()
-
-    conformal_inference_band_ax = ax.fill_between(
-        time_grid,
-        conformal_inference_band.lower,
-        conformal_inference_band.upper,
-        label="CI (linear)",
-        alpha=0.5,
-        color=tableau["green"],
-    )
-
-    our_sim_result_ax = ax.fill_between(
+    # order in which these plots are drawn matters, since otherwise the order of the
+    # legend labels is not correct
+    ax.fill_between(
         time_grid,
         our_sim_result.band.lower,
         our_sim_result.band.upper,
         label="Our",
         alpha=0.6,
         color=tableau["blue"],
+        zorder=2,
     )
-
-    y_new_hat_ax = ax.plot(
+    ax.fill_between(
+        time_grid,
+        conformal_inference_band.lower,
+        conformal_inference_band.upper,
+        label="CI (linear)",
+        alpha=0.5,
+        color=tableau["green"],
+        zorder=1,
+    )
+    ax.plot(
+        time_grid, new_y, label="True", color=tableau["yellow"], linewidth=2, zorder=4
+    )
+    ax.plot(
         time_grid,
         new_y_hat,
         label="Estimate",
@@ -228,44 +330,7 @@ def _visualize_bands(
         alpha=0.6,
         linestyle="--",
         linewidth=1.5,
-    )
-    y_new_ax = ax.plot(
-        time_grid, new_y, label="True", color=tableau["yellow"], linewidth=2
+        zorder=3,
     )
 
-    ax.spines["top"].set_visible(False)
-    ax.spines["right"].set_visible(False)
-    ax.spines["left"].set_visible(False)
-    ax.spines["bottom"].set_visible(False)
-    ax.tick_params(labelsize=FIG_FONT_SIZE)
-    ax.grid(visible=True, linestyle="--", alpha=0.7)
-    ax.set_xlim(0, 1)
-    ax.set_ylim(-2.9, 2.9)
-    ax.set_xticks([0, 0.25, 0.5, 0.75, 1])
-
-    ax.set_xlabel("$t$", fontsize=FIG_FONT_SIZE)
-    fig.text(0, 0.50, r"$Y(t)$", fontsize=FIG_FONT_SIZE, rotation=0)
-
-    fig.tight_layout(rect=(0.01, 0.03, 1, 1))
-    fig.set_size_inches(PAPER_TEXT_WIDTH, 3)
-
-    ax.legend(
-        [
-            our_sim_result_ax,
-            conformal_inference_band_ax,
-            y_new_ax[0],
-            y_new_hat_ax[0],
-        ],
-        [
-            "Our",
-            "Conformal inference",
-            r"$Y_{\textsf{new}}(t)$",
-            r"$X_{\textsf{new}}(t)^{\mathsf{T}} \hat{\beta}(t)$",
-        ],
-        frameon=False,
-        ncols=4,
-        loc="lower center",
-        bbox_to_anchor=(0.5, -0.275),
-    )
-
-    return fig
+    return ax
