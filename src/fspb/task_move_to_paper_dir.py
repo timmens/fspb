@@ -31,17 +31,6 @@ def task_move_band_figure(
     shutil.copy(band_figure_path, to_path)
 
 
-@pytask.mark.skipif(
-    not MOVE_RESULTS_TO_PAPER_DIR, reason="Not moving results to paper directory."
-)
-@pytask.task(id="confidence")
-def task_move_confidence_simulation_results_table(
-    simulation_results_table_path: Path = BLD_TABLES / "confidence.tex",
-    to_path: Annotated[Path, Product] = PAPER_BLD / "confidence.tex",
-) -> None:
-    shutil.copy(simulation_results_table_path, to_path)
-
-
 for covariance_type in ("stationary", "non_stationary"):
 
     @pytask.mark.skipif(
@@ -55,3 +44,13 @@ for covariance_type in ("stationary", "non_stationary"):
         / f"prediction_{covariance_type}.tex",
     ) -> None:
         shutil.copy(simulation_results_table_path, to_path)
+
+
+@pytask.mark.skipif(
+    not MOVE_RESULTS_TO_PAPER_DIR, reason="Not moving results to paper directory."
+)
+def task_move_confidence_simulation_results_table(
+    simulation_results_table_path: Path = BLD_TABLES / "confidence.tex",
+    to_path: Annotated[Path, Product] = PAPER_BLD / "confidence.tex",
+) -> None:
+    shutil.copy(simulation_results_table_path, to_path)
