@@ -1,4 +1,4 @@
-from fspb.config import BLD_TABLES, BLD_SIMULATION_PROCESSED
+from fspb.config import BLD_TABLES, BLD_SIMULATION_PROCESSED, SRC
 from fspb.simulation.results_tables import (
     produce_confidence_publication_table,
     produce_prediction_publication_table,
@@ -14,6 +14,7 @@ for covariance_type in ("stationary", "non_stationary"):
 
     @pytask.task(id=covariance_type)
     def task_produce_prediction_table(
+        _script: Path = SRC / "simulation" / "results_tables.py",
         consolidated_path: Path = BLD_SIMULATION_PROCESSED / "consolidated.pkl",
         product_path: Annotated[Path, Product] = BLD_TABLES
         / f"prediction_{covariance_type}.tex",
@@ -36,6 +37,7 @@ for covariance_type in ("stationary", "non_stationary"):
 
 
 def task_produce_confidence_table(
+    _script: Path = SRC / "simulation" / "results_tables.py",
     consolidated_path: Path = BLD_SIMULATION_PROCESSED / "consolidated.pkl",
     product_path: Annotated[Path, Product] = BLD_TABLES / "confidence.tex",
     covariance_type: str = covariance_type,

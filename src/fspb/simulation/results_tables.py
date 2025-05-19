@@ -66,14 +66,17 @@ def produce_confidence_publication_table(
         std_col = rounded[f"{column}_std"]
         combined[column] = mean_col.astype(str) + " (" + std_col.astype(str) + ")"
 
-    result = pd.DataFrame(combined)
-    result = result.rename(
-        {
-            "stationary": r"$S$",
-            "non_stationary": r"$NS$",
-        },
-        level="covariance_type",
+    result = pd.DataFrame(combined).reset_index()
+    covariance_type_dtype = pd.CategoricalDtype(
+        categories=["stationary", "non_stationary"], ordered=True
     )
+    result["covariance_type"] = result["covariance_type"].astype(covariance_type_dtype).cat.rename_categories(
+        {
+            "stationary": "Stationary",
+            "non_stationary": "Non-Stationary",
+        },
+    )
+    result = result.set_index(["covariance_type", "n_samples", "dof"])
 
     var_rename_mapping = {
         "coverage": "Coverage",
