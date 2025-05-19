@@ -32,7 +32,7 @@ for covariance_type in ("stationary", "non_stationary"):
             escape=False,
             multicolumn=True,
             multicolumn_format="c",
-            column_format="ll" + "c" * len(table.columns),
+            column_format="rr" + "c" * len(table.columns),
         )
 
 
@@ -54,5 +54,5 @@ def task_produce_confidence_table(
         escape=False,
         multicolumn=True,
         multicolumn_format="c",
-        column_format="lll" + "c" * len(table.columns),
+        column_format="rrr" + "c" * len(table.columns),
     )

@@ -57,8 +57,10 @@ def simulate_from_model(
         length_scale=length_scale,
     )
 
+    intercept = 0.5 * np.exp(-2 * time_grid)
+
     model = ConcurrentLinearModel(
-        intercept=np.zeros_like(time_grid),
+        intercept=intercept,
         slope=_slope_function(time_grid),
         x_shape=(n_samples, 2, len(time_grid)),
     )

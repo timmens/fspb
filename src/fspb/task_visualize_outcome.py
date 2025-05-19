@@ -82,7 +82,7 @@ def _create_outcome_figures(
         ax.tick_params(labelsize=FIG_FONT_SIZE)
         ax.grid(visible=True, linestyle="--", alpha=0.7)
         ax.set_xlim(0, 1)
-        ax.set_ylim(-1.9, 1.95)
+        ax.set_ylim(-1.9, 2.05)
         ax.set_xticks([0, 1 / 3, 2 / 3, 1])
         ax.set_xticklabels(["$0$", "$1/3$", "$2/3$", "$1$"])
         ax.set_yticks([-1, 0, 1])
