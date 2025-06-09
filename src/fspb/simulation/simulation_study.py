@@ -44,8 +44,8 @@ class SimulationResult:
             result.band.contains(true_f)
             for result, true_f in zip(self.simulation_results, self.band_center_func())
         ]
-        contained_arr = np.array(contained_list, dtype=np.int8)
-        return np.mean(contained_arr), np.std(contained_arr)
+        contained_arr = np.array(contained_list, dtype=np.float64)
+        return nan_mean_and_std(contained_arr)
 
     def maximum_width_statistic(self) -> tuple[np.floating, np.floating]:
         """The maximum width statistic of the simulation."""
@@ -53,7 +53,7 @@ class SimulationResult:
             result.band.maximum_width_statistic for result in self.simulation_results
         ]
         widths_arr = np.array(widths_list, dtype=np.float64)
-        return np.mean(widths_arr), np.std(widths_arr)
+        return nan_mean_and_std(widths_arr)
 
     def band_score(self) -> tuple[np.floating, np.floating]:
         """The band scores of the simulation."""
@@ -64,7 +64,7 @@ class SimulationResult:
             for result, true_f in zip(self.simulation_results, self.band_center_func())
         ]
         scores_arr = np.array(scores_list, dtype=np.float64)
-        return np.mean(scores_arr), np.std(scores_arr)
+        return nan_mean_and_std(scores_arr)
 
     def band_center_func(self) -> list[NDArray[np.floating]]:
         if self.band_options.band_type == BandType.CONFIDENCE:
@@ -76,6 +76,12 @@ class SimulationResult:
             return [result.new_data.y for result in self.simulation_results]
         else:
             raise ValueError(f"Band type {self.band_options.band_type} not supported.")
+
+
+def nan_mean_and_std(a: NDArray[np.floating]) -> tuple[np.floating, np.floating]:
+    """Calculate the mean and standard deviation of an array, ignoring NaNs."""
+    valid_mask = ~np.isnan(a)
+    return np.mean(a, where=valid_mask), np.std(a, where=valid_mask)
 
 
 @dataclass

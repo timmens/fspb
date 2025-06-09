@@ -24,7 +24,7 @@ class Band:
     lower: NDArray[np.floating]
     upper: NDArray[np.floating]
 
-    def contains(self, func: NDArray[np.floating]) -> bool:
+    def contains(self, func: NDArray[np.floating]) -> bool | float:
         """Check if the band contains another function.
 
         Args:
@@ -34,6 +34,8 @@ class Band:
             True if the band contains func, False otherwise.
 
         """
+        if _is_invalid(self.lower, self.upper):
+            return np.nan
         return bool(np.all(func >= self.lower) and np.all(func <= self.upper))
 
     @property
@@ -44,6 +46,8 @@ class Band:
             The maximum width statistic of the band.
 
         """
+        if _is_invalid(self.lower, self.upper):
+            return np.nan
         return np.max(self.upper - self.lower)
 
     def band_score(self, func: NDArray[np.floating], signifance_level: float) -> float:
@@ -57,6 +61,8 @@ class Band:
             The band score of the band.
 
         """
+        if _is_invalid(self.lower, self.upper):
+            return np.nan
         maximum_width_statistic = self.maximum_width_statistic
         maximum_low_to_func = np.max(
             self.lower - func, where=func < self.lower, initial=0
@@ -175,3 +181,12 @@ BAND_OPTIONS = {
         method=BandMethod.FAIR,
     ),
 }
+
+
+def _is_invalid(lower: NDArray[np.floating], upper: NDArray[np.floating]) -> bool:
+    return (
+        np.isnan(lower).any()
+        or np.isnan(upper).any()
+        or np.isinf(lower).any()
+        or np.isinf(upper).any()
+    )
