@@ -130,10 +130,10 @@ class GaussianAlgorithm(Algorithm):
         return norm.pdf(x)
 
     def _scaling(self, x: float) -> float:
-        return norm.pdf(x)
+        return norm.pdf(x) * np.sqrt(2 * np.pi)
 
     def _scaling_gradient(self, x: float) -> float:
-        return -x * norm.pdf(x)
+        return -x * norm.pdf(x) * np.sqrt(2 * np.pi)
 
 
 @dataclass(frozen=True)
@@ -152,7 +152,7 @@ class StudentTAlgorithm(Algorithm):
 
     def _scaling_gradient(self, x: float) -> float:
         v = self.degrees_of_freedom
-        return -x * (2 * np.pi) * (1 + x**2 / v) ** (-v / 2 - 1)
+        return -x * (1 + x**2 / v) ** (-v / 2 - 1) / (2 * np.pi)
 
 
 def calculate_piecewise_integrals(
