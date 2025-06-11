@@ -9,6 +9,11 @@ class BandType(StrEnum):
     PREDICTION = auto()
 
 
+class BandMethod(StrEnum):
+    FAIR = auto()
+    MIN_WIDTH = auto()
+
+
 class CovarianceType(StrEnum):
     STATIONARY = auto()
     NON_STATIONARY = auto()

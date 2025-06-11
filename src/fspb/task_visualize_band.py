@@ -5,8 +5,13 @@ from pytask import Product
 import pandas as pd
 import json
 from fspb.simulation.processing import their_results_to_simulation_results_object
-from fspb.types import BandType, CovarianceType, ConformalInferencePredictionMethod
-from fspb.bands.band import BAND_OPTIONS, BandOptions
+from fspb.types import (
+    BandType,
+    CovarianceType,
+    ConformalInferencePredictionMethod,
+    BandMethod,
+)
+from fspb.bands.band import BandOptions
 from fspb.config import Scenario
 from fspb.simulation.simulation_study import (
     simulation_study,
@@ -27,6 +32,7 @@ scenarios = Scenario.from_lists(
     dof=[15],
     covariance_type=[CovarianceType.STATIONARY, CovarianceType.NON_STATIONARY],
     band_type=[BandType.PREDICTION],
+    band_method=[BandMethod.FAIR],
 )
 
 for scenario in scenarios:
@@ -42,7 +48,7 @@ for scenario in scenarios:
         length_scale=0.4,
     )
 
-    band_options = BAND_OPTIONS[scenario.band_type]
+    band_options = BandOptions.from_scenario(scenario)
 
     # Simulate data and run simulation study
     # ==================================================================================

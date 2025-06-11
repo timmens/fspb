@@ -5,7 +5,7 @@ from pathlib import Path
 import itertools
 from typing import Literal, TypedDict
 from dataclasses import dataclass, fields
-from fspb.types import CovarianceType, parse_enum_type, BandType
+from fspb.types import CovarianceType, parse_enum_type, BandType, BandMethod
 
 SRC = Path(__file__).parent.resolve()
 
@@ -37,6 +37,7 @@ class ScenarioDict(TypedDict):
     dof: int
     covariance_type: Literal["STATIONARY", "NON_STATIONARY"]
     band_type: Literal["CONFIDENCE", "PREDICTION"]
+    band_method: Literal["FAIR", "MIN_WIDTH"]
 
 
 @dataclass
@@ -45,12 +46,13 @@ class Scenario:
     dof: int
     covariance_type: CovarianceType
     band_type: BandType
+    band_method: BandMethod
 
     def _fields(self) -> list[str]:
         return [f.name for f in fields(self)]
 
     def to_str(self) -> str:
-        return f"n={self.n_samples}-d={self.dof}-c={self.covariance_type.value}-b={self.band_type.value}"
+        return f"n={self.n_samples}-d={self.dof}-c={self.covariance_type.value}-b={self.band_type.value}-m={self.band_method.value}"
 
     def to_dict(self) -> ScenarioDict:
         return ScenarioDict(
@@ -58,16 +60,20 @@ class Scenario:
             dof=self.dof,
             covariance_type=self.covariance_type.value,  # type: ignore[typeddict-item]
             band_type=self.band_type.value,  # type: ignore[typeddict-item]
+            band_method=self.band_method.value,  # type: ignore[typeddict-item]
         )
 
     @classmethod
     def from_str(cls, string: str) -> Scenario:
-        n_samples, dof, cov_type_str, band_type_str = [
+        n_samples, dof, cov_type_str, band_type_str, band_method_str = [
             s.split("=")[1] for s in string.split("-")
         ]
         covariance_type = parse_enum_type(cov_type_str, CovarianceType)
         band_type = parse_enum_type(band_type_str, BandType)
-        return Scenario(int(n_samples), int(dof), covariance_type, band_type)
+        band_method = parse_enum_type(band_method_str, BandMethod)
+        return Scenario(
+            int(n_samples), int(dof), covariance_type, band_type, band_method
+        )
 
     @classmethod
     def from_lists(
@@ -76,11 +82,16 @@ class Scenario:
         dof: list[int],
         covariance_type: list[CovarianceType],
         band_type: list[BandType],
+        band_method: list[BandMethod],
     ) -> list[Scenario]:
         return [
-            cls(n, d, c, b)
-            for n, d, c, b in itertools.product(
-                n_samples, dof, covariance_type, band_type
+            cls(n, d, c, b, m)
+            for n, d, c, b, m in itertools.product(
+                n_samples,
+                dof,
+                covariance_type,
+                band_type,
+                band_method,
             )
         ]
 
@@ -90,6 +101,7 @@ PREDICTION_SCENARIOS = Scenario.from_lists(
     dof=[5, 15],
     covariance_type=[CovarianceType.STATIONARY, CovarianceType.NON_STATIONARY],
     band_type=[BandType.PREDICTION],
+    band_method=[BandMethod.MIN_WIDTH],
 )
 
 CONFIDENCE_SCENARIOS = Scenario.from_lists(
@@ -97,4 +109,5 @@ CONFIDENCE_SCENARIOS = Scenario.from_lists(
     dof=[5, 15],
     covariance_type=[CovarianceType.STATIONARY, CovarianceType.NON_STATIONARY],
     band_type=[BandType.CONFIDENCE],
+    band_method=[BandMethod.FAIR, BandMethod.MIN_WIDTH],
 )

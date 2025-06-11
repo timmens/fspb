@@ -5,7 +5,7 @@ from pytask import Product
 import pandas as pd
 import json
 from fspb.types import BandType, ConformalInferencePredictionMethod
-from fspb.bands.band import BAND_OPTIONS, BandOptions
+from fspb.bands.band import BandOptions
 from fspb.config import (
     SRC,
     PREDICTION_SCENARIOS,
@@ -41,7 +41,7 @@ for scenario in PREDICTION_SCENARIOS + CONFIDENCE_SCENARIOS:
         length_scale=1.0,
     )
 
-    band_options = BAND_OPTIONS[scenario.band_type]
+    band_options = BandOptions.from_scenario(scenario)
 
     # Simulate data and run simulation study
     # ==================================================================================

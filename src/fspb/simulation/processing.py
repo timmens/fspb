@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-from fspb.bands.band import Band, BAND_OPTIONS
+from fspb.bands.band import Band, BandOptions
 from fspb.simulation.simulation_study import SimulationResult, SingleSimulationResult
 from fspb.config import Scenario
 
@@ -91,7 +91,7 @@ def _result_and_scenario_to_simulation_result(
     )
     return SimulationResult(
         simulation_results=simulation_results,
-        band_options=BAND_OPTIONS[scenario.band_type],
+        band_options=BandOptions.from_scenario(scenario),
     )
 
 

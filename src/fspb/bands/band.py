@@ -6,16 +6,10 @@ from dataclasses import dataclass
 from fspb.bands.linear_model import ConcurrentLinearModel
 from fspb.bands.roughness import calculate_roughness_on_grid
 from fspb.bands.fair_algorithm import fair_critical_value_selection
-from fspb.types import DistributionType
+from fspb.types import DistributionType, BandMethod
 from fspb.bands.min_width_algorithm import min_width_critical_value_selection
 from fspb.bands.covariance import calculate_covariance, dof_estimate
-from fspb.config import BandType
-from enum import StrEnum, auto
-
-
-class BandMethod(StrEnum):
-    FAIR = auto()
-    MIN_WIDTH = auto()
+from fspb.config import BandType, Scenario
 
 
 @dataclass
@@ -128,6 +122,7 @@ class Band:
                 time_grid=time_grid,
                 sd_diag=sd_diag,
                 norm_order=norm_order,
+                n_samples=len(y),
             )
         else:
             raise ValueError(f"Unknown band method: {method}")
@@ -162,25 +157,58 @@ class BandOptions:
     norm_order: float
     method: BandMethod
 
+    @classmethod
+    def from_scenario(
+        cls,
+        scenario: Scenario,
+        distribution_type: DistributionType | None = None,
+        interval_cutoffs: NDArray[np.floating] | None = None,
+        significance_level: float | None = None,
+        norm_order: float | None = None,
+    ):
+        if distribution_type is None:
+            distribution_type = {
+                BandType.CONFIDENCE: DistributionType.GAUSSIAN,
+                BandType.PREDICTION: DistributionType.STUDENT_T,
+            }[scenario.band_type]
 
-BAND_OPTIONS = {
-    BandType.CONFIDENCE: BandOptions(
-        band_type=BandType.CONFIDENCE,
-        interval_cutoffs=np.array([0, 1 / 3, 2 / 3, 1]),
-        significance_level=0.1,
-        distribution_type=DistributionType.GAUSSIAN,
-        norm_order=2,
-        method=BandMethod.FAIR,
-    ),
-    BandType.PREDICTION: BandOptions(
-        band_type=BandType.PREDICTION,
-        interval_cutoffs=np.array([0, 1 / 3, 2 / 3, 1]),
-        significance_level=0.1,
-        distribution_type=DistributionType.STUDENT_T,
-        norm_order=2,
-        method=BandMethod.FAIR,
-    ),
-}
+        if interval_cutoffs is None:
+            interval_cutoffs = np.array([0, 1 / 3, 2 / 3, 1])
+
+        if significance_level is None:
+            significance_level = 0.1
+
+        if norm_order is None:
+            norm_order = 2.0
+
+        return cls(
+            band_type=scenario.band_type,
+            interval_cutoffs=interval_cutoffs,
+            significance_level=significance_level,
+            distribution_type=distribution_type,
+            norm_order=norm_order,
+            method=scenario.band_method,
+        )
+
+
+# BAND_OPTIONS = {
+#     BandType.CONFIDENCE: BandOptions(
+#         band_type=BandType.CONFIDENCE,
+#         interval_cutoffs=np.array([0, 1 / 3, 2 / 3, 1]),
+#         significance_level=0.1,
+#         distribution_type=DistributionType.GAUSSIAN,
+#         norm_order=2,
+#         method=BandMethod.FAIR,
+#     ),
+#     BandType.PREDICTION: BandOptions(
+#         band_type=BandType.PREDICTION,
+#         interval_cutoffs=np.array([0, 1 / 3, 2 / 3, 1]),
+#         significance_level=0.1,
+#         distribution_type=DistributionType.STUDENT_T,
+#         norm_order=2,
+#         method=BandMethod.FAIR,
+#     ),
+# }
 
 
 def _is_invalid(lower: NDArray[np.floating], upper: NDArray[np.floating]) -> bool:
