@@ -25,7 +25,7 @@ for covariance_type in ("stationary", "non_stationary"):
             consolidated.xs("prediction", level="band_type")
             .xs(covariance_type, level="covariance_type")
             .query("Method in ('Ours', 'CI (Linear)')")
-        ).droplevel("band_method")
+        )
         table = produce_prediction_publication_table(prediction_results)  # type: ignore[arg-type]
         table.to_latex(
             product_path,

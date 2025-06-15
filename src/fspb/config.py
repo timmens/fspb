@@ -101,7 +101,7 @@ PREDICTION_SCENARIOS = Scenario.from_lists(
     dof=[5, 15],
     covariance_type=[CovarianceType.STATIONARY, CovarianceType.NON_STATIONARY],
     band_type=[BandType.PREDICTION],
-    band_method=[BandMethod.FAIR],
+    band_method=[BandMethod.FAIR, BandMethod.MIN_WIDTH],
 )
 
 CONFIDENCE_SCENARIOS = Scenario.from_lists(

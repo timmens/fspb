@@ -1,6 +1,5 @@
 from typing import Callable
 import numpy as np
-from functools import partial
 from numpy.typing import NDArray
 from dataclasses import dataclass
 from fspb.bands.fair_algorithm import (
@@ -8,10 +7,10 @@ from fspb.bands.fair_algorithm import (
     fair_critical_value_selection,
 )
 from fspb.types import DistributionType, parse_enum_type
-from abc import ABC, abstractmethod
 import jax.numpy as jnp
 from jax import Array, grad, jit
-from jax.scipy.stats import norm
+from jax.scipy.stats import norm as jax_norm
+from scipy.stats import t as scipy_t
 import optimagic as om
 from optimagic.optimization.algorithm import Algorithm as OptimagicAlgorithm
 
@@ -33,20 +32,10 @@ def min_width_critical_value_selection(
 ) -> NDArray[np.floating]:
     distribution_type = parse_enum_type(distribution_type, DistributionType)
 
-    if distribution_type == DistributionType.STUDENT_T:
-        raise NotImplementedError("Student-t distribution not implemented")
-
     roughness_integrals = calculate_piecewise_integrals(
         interval_cutoffs, values=roughness, time_grid=time_grid
     )
     interval_lengths = interval_cutoffs[1:] - interval_cutoffs[:-1]
-
-    # Convert to JAX arrays
-    interval_cutoffs_jax = jnp.array(interval_cutoffs)
-    roughness_integrals_jax = jnp.array(roughness_integrals)
-    interval_lengths_jax = jnp.array(interval_lengths)
-    time_grid_jax = jnp.array(time_grid)
-    sd_diag_jax = jnp.array(sd_diag)
 
     # Get start parameters from fair critical value selection
     start_params = fair_critical_value_selection(
@@ -64,8 +53,15 @@ def min_width_critical_value_selection(
     tol = 0.05
     penalty = 0.5
 
-    for _ in range(5):
-        algo: Algorithm = GaussianAlgorithm(
+    if distribution_type == DistributionType.GAUSSIAN:
+        # Convert to JAX arrays for GaussianAlgorithm
+        interval_cutoffs_jax = jnp.array(interval_cutoffs)
+        roughness_integrals_jax = jnp.array(roughness_integrals)
+        interval_lengths_jax = jnp.array(interval_lengths)
+        time_grid_jax = jnp.array(time_grid)
+        sd_diag_jax = jnp.array(sd_diag)
+
+        algo = GaussianAlgorithm(
             significance_level=significance_level,
             interval_cutoffs=interval_cutoffs_jax,
             roughness_integrals=roughness_integrals_jax,
@@ -77,7 +73,25 @@ def min_width_critical_value_selection(
             start_params=start_params,
             penalty=penalty,
         )
+    elif distribution_type == DistributionType.STUDENT_T:
+        algo = StudentTAlgorithm(
+            significance_level=significance_level,
+            interval_cutoffs=interval_cutoffs,
+            roughness_integrals=roughness_integrals,
+            interval_lengths=interval_lengths,
+            time_grid=time_grid,
+            sd_diag=sd_diag,
+            norm_order=norm_order,
+            n_samples=n_samples,
+            start_params=start_params,
+            penalty=penalty,
+            degrees_of_freedom=degrees_of_freedom,
+        )
+    else:
+        msg = f"Unsupported distribution type: {distribution_type}"
+        raise ValueError(msg)
 
+    for _ in range(5):
         res = algo.solve(algorithm=om.algos.scipy_lbfgsb(stopping_maxfun=1_000))
 
         constraint_value = algo._constraint(res.params)
@@ -93,7 +107,7 @@ def min_width_critical_value_selection(
 
 
 @dataclass
-class Algorithm(ABC):
+class GaussianAlgorithm:
     significance_level: float
     interval_cutoffs: Array
     roughness_integrals: Array
@@ -106,40 +120,25 @@ class Algorithm(ABC):
     penalty: float = 1.0
 
     def __post_init__(self) -> None:
-        self.objective = allow_numpy_input(jit(self._objective))
-        self.objective_gradient = allow_numpy_input(jit(grad(self._objective)))
-        self.constraint = allow_numpy_input(jit(self._constraint))
-        self.constraint_gradient = allow_numpy_input(jit(grad(self._constraint)))
+        # self.objective = allow_numpy_input(jit(self._objective))
+        # self.objective_gradient = allow_numpy_input(jit(grad(self._objective)))
+        # self.constraint = allow_numpy_input(jit(self._constraint))
+        # self.constraint_gradient = allow_numpy_input(jit(grad(self._constraint)))
         self.sd_diag_interval_integral = calculate_piecewise_integrals(
             self.interval_cutoffs, values=self.sd_diag, time_grid=self.time_grid
         )
-        self.penalized_objective = allow_numpy_input(
-            jit(partial(self._penalized_objective, penalty=self.penalty))
-        )
+        self.penalized_objective = allow_numpy_input(jit(self._penalized_objective))
         self.penalized_objective_gradient = allow_numpy_input(
-            jit(grad(partial(self._penalized_objective, penalty=self.penalty)))
+            jit(grad(self._penalized_objective))
         )
 
     def solve(self, algorithm: OptimagicAlgorithm) -> om.OptimizeResult:
-        if self.start_params is not None:
-            u0 = self.start_params
-        else:
-            u0 = np.repeat(0.5, len(self.interval_cutoffs) - 1)
+        return _solve(self, algorithm)
 
-        bounds = om.Bounds(lower=np.zeros_like(u0))
-
-        return om.minimize(
-            fun=self.penalized_objective,
-            jac=self.penalized_objective_gradient,
-            params=u0,
-            bounds=bounds,
-            algorithm=algorithm,
-        )
-
-    def _penalized_objective(self, u: Array, penalty: float) -> float:
+    def _penalized_objective(self, u: Array) -> float:
         return (
             self._objective(u)
-            + penalty * (self._constraint(u) - self.significance_level / 100) ** 2
+            + self.penalty * (self._constraint(u) - self.significance_level / 2) ** 2
         )
 
     def _objective(self, u: Array) -> float:
@@ -149,22 +148,101 @@ class Algorithm(ABC):
         scalings_dot_roughness = jnp.dot(self._scaling(u), self.roughness_integrals)
         return self._cdf(-u[0]) + scalings_dot_roughness  # type: ignore[return-value]
 
-    @abstractmethod
     def _cdf(self, u: Array) -> Array:
-        pass
+        return jax_norm.cdf(u)
 
-    @abstractmethod
     def _scaling(self, u: Array) -> Array:
-        pass
+        return jax_norm.pdf(u) * jnp.sqrt(2 * jnp.pi)
 
 
 @dataclass
-class GaussianAlgorithm(Algorithm):
-    def _cdf(self, u: Array) -> Array:
-        return norm.cdf(u)
+class StudentTAlgorithm:
+    significance_level: float
+    interval_cutoffs: NDArray[np.floating]
+    roughness_integrals: NDArray[np.floating]
+    interval_lengths: NDArray[np.floating]
+    time_grid: NDArray[np.floating]
+    sd_diag: NDArray[np.floating]
+    norm_order: float
+    n_samples: int
+    start_params: NDArray[np.floating] | None = None
+    penalty: float = 1.0
+    degrees_of_freedom: float | None = None
 
-    def _scaling(self, u: Array) -> Array:
-        return norm.pdf(u) * jnp.sqrt(2 * jnp.pi)
+    def __post_init__(self) -> None:
+        if self.degrees_of_freedom is None:
+            msg = "degrees_of_freedom must be provided for Student-t distribution"
+            raise ValueError(msg)
+        self.sd_diag_interval_integral = calculate_piecewise_integrals(
+            self.interval_cutoffs, values=self.sd_diag, time_grid=self.time_grid
+        )
+
+    def solve(self, algorithm: OptimagicAlgorithm) -> om.OptimizeResult:
+        return _solve(self, algorithm)
+
+    def penalized_objective(self, u: NDArray[np.floating]) -> float:
+        return (
+            self._objective(u)
+            + self.penalty * (self._constraint(u) - self.significance_level / 2) ** 2
+        )
+
+    def penalized_objective_gradient(
+        self, u: NDArray[np.floating]
+    ) -> NDArray[np.floating]:
+        return self._objective_gradient(u) + 2 * self.penalty * (
+            self._constraint(u) - self.significance_level / 2
+        ) * self._constraint_gradient(u)
+
+    def _objective(self, u: NDArray[np.floating]) -> float:
+        return np.sum(u**2 * self.sd_diag_interval_integral) / self.n_samples
+
+    def _objective_gradient(self, u: NDArray[np.floating]) -> NDArray[np.floating]:
+        return 2 * u * self.sd_diag_interval_integral / self.n_samples
+
+    def _constraint(self, u: NDArray[np.floating]) -> float:
+        scalings_dot_roughness = np.dot(self._scaling(u), self.roughness_integrals)
+        return self._cdf(-u[0]) + scalings_dot_roughness
+
+    def _constraint_gradient(self, u: NDArray[np.floating]) -> NDArray[np.floating]:
+        grad_scaling = self._scaling_gradient(u)
+        grad_cdf = -self._cdf_gradient(-u[0])
+        gradient = np.zeros_like(u)
+        gradient[0] = grad_cdf
+        gradient += grad_scaling * self.roughness_integrals
+        return gradient
+
+    def _cdf(self, x: float) -> float:
+        return scipy_t.cdf(x, df=self.degrees_of_freedom)
+
+    def _cdf_gradient(self, x: float) -> float:
+        return scipy_t.pdf(x, df=self.degrees_of_freedom)
+
+    def _scaling(self, x: float) -> float:
+        v = self.degrees_of_freedom
+        return (1 + x**2 / v) ** (-v / 2) / (2 * np.pi)
+
+    def _scaling_gradient(self, x: float) -> float:
+        v = self.degrees_of_freedom
+        return -x * (1 + x**2 / v) ** (-v / 2 - 1) / (2 * np.pi)
+
+
+def _solve(
+    algo: GaussianAlgorithm | StudentTAlgorithm, algorithm: OptimagicAlgorithm
+) -> om.OptimizeResult:
+    if algo.start_params is not None:
+        u0 = algo.start_params
+    else:
+        u0 = np.repeat(0.5, len(algo.interval_cutoffs) - 1)
+
+    bounds = om.Bounds(lower=np.zeros_like(u0))
+
+    return om.minimize(
+        fun=algo.penalized_objective,
+        jac=algo.penalized_objective_gradient,
+        params=u0,
+        bounds=bounds,
+        algorithm=algorithm,
+    )
 
 
 def allow_numpy_input(
