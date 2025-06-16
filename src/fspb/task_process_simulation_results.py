@@ -2,8 +2,7 @@ from fspb.config import (
     PREDICTION_SCENARIOS,
     CONFIDENCE_SCENARIOS,
     Scenario,
-    BLD_SIMULATION_OUR,
-    BLD_SIMULATION_CONFORMAL_INFERENCE,
+    BLD_SIMULATION,
     BLD_SIMULATION_PROCESSED,
 )
 from pathlib import Path
@@ -11,7 +10,7 @@ from typing import Annotated
 import pandas as pd
 import pytask
 from pytask import Product
-from fspb.types import ConformalInferencePredictionMethod
+from fspb.types import EstimationMethod
 from fspb.simulation.processing import (
     process_our_simulation_results,
     process_conformal_inference_simulation_results,
@@ -21,56 +20,52 @@ from fspb.simulation.processing import (
 # Results processing
 # ======================================================================================
 
-OUR_RESULTS_PATHS = [
-    BLD_SIMULATION_OUR / f"{scenario.to_str()}.pkl"
-    for scenario in PREDICTION_SCENARIOS + CONFIDENCE_SCENARIOS
-]
-
-CONFORMAL_INFERENCE_RESULTS_PATHS = {
-    prediction_method: [
-        BLD_SIMULATION_CONFORMAL_INFERENCE
-        / str(prediction_method)
-        / f"{scenario.to_str()}.json"
-        for scenario in PREDICTION_SCENARIOS
+OUR_RESULTS_PATHS = {
+    method: [
+        BLD_SIMULATION / method / f"{scenario.to_str()}.pkl"
+        for scenario in PREDICTION_SCENARIOS + CONFIDENCE_SCENARIOS
     ]
-    for prediction_method in ConformalInferencePredictionMethod
+    for method in EstimationMethod
 }
 
+for method in [EstimationMethod.FAIR, EstimationMethod.MIN_WIDTH]:
 
-def task_process_our_simulation_results(
-    our_result_paths: list[Path] = OUR_RESULTS_PATHS,
-    processed_path: Annotated[Path, Product] = BLD_SIMULATION_PROCESSED / "our.pkl",
-) -> None:
-    our_results = [pd.read_pickle(path) for path in our_result_paths]
-    scenarios = [Scenario.from_str(path.stem) for path in our_result_paths]
-    processed = process_our_simulation_results(our_results, scenarios)
-    processed.to_pickle(processed_path)
-
-
-for prediction_method in ConformalInferencePredictionMethod:
-
-    @pytask.task(id=prediction_method.value)
-    def task_process_conformal_inference_simulation_results(
-        conformal_inference_result_paths: list[
-            Path
-        ] = CONFORMAL_INFERENCE_RESULTS_PATHS[prediction_method],
-        our_result_paths: list[Path] = OUR_RESULTS_PATHS,
+    @pytask.task(id=method)
+    def task_process_our_simulation_results(
+        our_result_paths: list[Path] = OUR_RESULTS_PATHS[method],
         processed_path: Annotated[Path, Product] = BLD_SIMULATION_PROCESSED
-        / f"conformal_inference_{prediction_method}.pkl",
+        / f"{method}.pkl",
     ) -> None:
-        conformal_inference_results = [
-            pd.read_json(path) for path in conformal_inference_result_paths
-        ]
         our_results = [pd.read_pickle(path) for path in our_result_paths]
-        scenarios = [
-            Scenario.from_str(path.stem) for path in conformal_inference_result_paths
-        ]
-        processed = process_conformal_inference_simulation_results(
-            conformal_inference_results=conformal_inference_results,
-            our_results=our_results,
-            scenarios=scenarios,
-        )
+        scenarios = [Scenario.from_str(path.stem) for path in our_result_paths]
+        processed = process_our_simulation_results(our_results, scenarios)
         processed.to_pickle(processed_path)
+
+
+CI_RESULTS_PATHS = [
+    BLD_SIMULATION / "ci" / f"{scenario.to_str()}.json"
+    for scenario in PREDICTION_SCENARIOS
+]
+
+
+def task_process_ci_simulation_results(
+    conformal_inference_result_paths: list[Path] = CI_RESULTS_PATHS,
+    our_result_paths: list[Path] = OUR_RESULTS_PATHS[EstimationMethod.FAIR],
+    processed_path: Annotated[Path, Product] = BLD_SIMULATION_PROCESSED / "ci.pkl",
+) -> None:
+    conformal_inference_results = [
+        pd.read_json(path) for path in conformal_inference_result_paths
+    ]
+    our_results = [pd.read_pickle(path) for path in our_result_paths]
+    scenarios = [
+        Scenario.from_str(path.stem) for path in conformal_inference_result_paths
+    ]
+    processed = process_conformal_inference_simulation_results(
+        conformal_inference_results=conformal_inference_results,
+        our_results=our_results,
+        scenarios=scenarios,
+    )
+    processed.to_pickle(processed_path)
 
 
 # ======================================================================================
@@ -79,28 +74,13 @@ for prediction_method in ConformalInferencePredictionMethod:
 
 
 def task_consolidate_simulation_results(
-    our_results_path: Path = BLD_SIMULATION_PROCESSED / "our.pkl",
-    conformal_inference_mean_results_path: Path = BLD_SIMULATION_PROCESSED
-    / "conformal_inference_mean.pkl",
-    conformal_inference_linear_results_path: Path = BLD_SIMULATION_PROCESSED
-    / "conformal_inference_linear.pkl",
+    results_paths: dict[str, Path] = {
+        method: BLD_SIMULATION_PROCESSED / f"{method}.pkl"
+        for method in EstimationMethod
+    },
     consolidated_path: Annotated[Path, Product] = BLD_SIMULATION_PROCESSED
     / "consolidated.pkl",
 ) -> None:
-    our_results = pd.read_pickle(our_results_path)
-    conformal_inference_mean_results = pd.read_pickle(
-        conformal_inference_mean_results_path
-    )
-    conformal_inference_linear_results = pd.read_pickle(
-        conformal_inference_linear_results_path
-    )
-    out = pd.concat(
-        [
-            our_results,
-            conformal_inference_mean_results,
-            conformal_inference_linear_results,
-        ],
-        keys=["Ours", "CI (Mean)", "CI (Linear)"],
-        names=["Method"],
-    )
+    results = {method: pd.read_pickle(path) for method, path in results_paths.items()}
+    out = pd.concat(results, names=["method"])
     out.to_pickle(consolidated_path)

@@ -8,8 +8,8 @@ from fspb.simulation.processing import their_results_to_simulation_results_objec
 from fspb.types import (
     BandType,
     CovarianceType,
-    ConformalInferencePredictionMethod,
-    BandMethod,
+    CIPredictionMethod,
+    EstimationMethod,
 )
 from fspb.bands.band import BandOptions
 from fspb.config import Scenario
@@ -32,7 +32,6 @@ scenarios = Scenario.from_lists(
     dof=[15],
     covariance_type=[CovarianceType.STATIONARY, CovarianceType.NON_STATIONARY],
     band_type=[BandType.PREDICTION],
-    band_method=[BandMethod.FAIR],
 )
 
 for scenario in scenarios:
@@ -71,6 +70,7 @@ for scenario in scenarios:
             n_simulations=N_TRIALS,
             simulation_options=simulation_options,
             band_options=band_options,
+            estimation_method=EstimationMethod.FAIR,
             n_cores=10,
             seed=BASE_SEED,
         )
@@ -128,7 +128,7 @@ for scenario in scenarios:
         functions_script_path: Path = SRC / "R" / "functions.R",
         simulation_data_path: Path = simulation_data_path,
         significance_level: float = band_options.significance_level,
-        fit_method: str = str(ConformalInferencePredictionMethod.LINEAR),
+        fit_method: str = str(CIPredictionMethod.LINEAR),
         results_path: Annotated[Path, Product] = conformal_inference_results_path,
     ) -> None:
         pass
@@ -268,7 +268,7 @@ def visualize_bands(
     fig.legend(
         handles,
         [
-            "Our",
+            "Fair",
             "Conformal inference",
             r"$Y_{\textsf{new}}(t)$",
             r"$X_{\textsf{new}}(t)^{\mathsf{T}} \hat{\beta}(t)$",

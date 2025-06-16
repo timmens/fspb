@@ -9,9 +9,10 @@ class BandType(StrEnum):
     PREDICTION = auto()
 
 
-class BandMethod(StrEnum):
+class EstimationMethod(StrEnum):
     FAIR = auto()
     MIN_WIDTH = auto()
+    CI = auto()
 
 
 class CovarianceType(StrEnum):
@@ -24,7 +25,7 @@ class DistributionType(StrEnum):
     STUDENT_T = auto()
 
 
-class ConformalInferencePredictionMethod(StrEnum):
+class CIPredictionMethod(StrEnum):
     MEAN = auto()
     LINEAR = auto()
 

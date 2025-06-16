@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from fspb.bands.linear_model import ConcurrentLinearModel
 from fspb.bands.roughness import calculate_roughness_on_grid
 from fspb.bands.fair_algorithm import fair_critical_value_selection
-from fspb.types import DistributionType, BandMethod
+from fspb.types import DistributionType, EstimationMethod
 from fspb.bands.min_width_algorithm import min_width_critical_value_selection
 from fspb.bands.covariance import calculate_covariance, dof_estimate
 from fspb.config import BandType, Scenario
@@ -81,7 +81,7 @@ class Band:
         significance_level: float,
         distribution_type: DistributionType,
         norm_order: float,
-        method: BandMethod,
+        method: EstimationMethod,
     ) -> Band:
         model = ConcurrentLinearModel()
         model.fit(x, y)
@@ -103,7 +103,7 @@ class Band:
         )
         sd_diag = np.sqrt(np.diag(covariance))
 
-        if method == BandMethod.FAIR:
+        if method == EstimationMethod.FAIR:
             critical_value_per_interval = fair_critical_value_selection(
                 significance_level=significance_level,
                 interval_cutoffs=interval_cutoffs,
@@ -112,7 +112,7 @@ class Band:
                 distribution_type=distribution_type,
                 degrees_of_freedom=dof_hat,
             )
-        elif method == BandMethod.MIN_WIDTH:
+        elif method == EstimationMethod.MIN_WIDTH:
             critical_value_per_interval = min_width_critical_value_selection(
                 significance_level=significance_level,
                 interval_cutoffs=interval_cutoffs,
@@ -123,11 +123,12 @@ class Band:
                 sd_diag=sd_diag,
                 norm_order=norm_order,
                 n_samples=len(y),
+                band_type=band_type,
             )
         else:
             raise ValueError(f"Unknown band method: {method}")
 
-        # Critical values are defined per interval sesction, so we need to map the
+        # Critical values are defined per interval section, so we need to map the
         # values over the time grid interval.
         scaling_idx = np.searchsorted(interval_cutoffs[1:-1], time_grid)
         critical_values = critical_value_per_interval[scaling_idx]
@@ -155,7 +156,6 @@ class BandOptions:
     significance_level: float
     distribution_type: DistributionType
     norm_order: float
-    method: BandMethod
 
     @classmethod
     def from_scenario(
@@ -187,28 +187,7 @@ class BandOptions:
             significance_level=significance_level,
             distribution_type=distribution_type,
             norm_order=norm_order,
-            method=scenario.band_method,
         )
-
-
-# BAND_OPTIONS = {
-#     BandType.CONFIDENCE: BandOptions(
-#         band_type=BandType.CONFIDENCE,
-#         interval_cutoffs=np.array([0, 1 / 3, 2 / 3, 1]),
-#         significance_level=0.1,
-#         distribution_type=DistributionType.GAUSSIAN,
-#         norm_order=2,
-#         method=BandMethod.FAIR,
-#     ),
-#     BandType.PREDICTION: BandOptions(
-#         band_type=BandType.PREDICTION,
-#         interval_cutoffs=np.array([0, 1 / 3, 2 / 3, 1]),
-#         significance_level=0.1,
-#         distribution_type=DistributionType.STUDENT_T,
-#         norm_order=2,
-#         method=BandMethod.FAIR,
-#     ),
-# }
 
 
 def _is_invalid(lower: NDArray[np.floating], upper: NDArray[np.floating]) -> bool:

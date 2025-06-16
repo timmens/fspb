@@ -6,7 +6,7 @@ from fspb.bands.fair_algorithm import (
     calculate_piecewise_integrals,
     fair_critical_value_selection,
 )
-from fspb.types import DistributionType, parse_enum_type
+from fspb.types import DistributionType, parse_enum_type, BandType
 import jax.numpy as jnp
 from jax import Array, grad, jit
 from jax.scipy.stats import norm as jax_norm
@@ -23,6 +23,7 @@ def min_width_critical_value_selection(
     roughness: NDArray[np.floating],
     distribution_type: DistributionType,
     n_samples: int,
+    band_type: BandType,
     degrees_of_freedom: float | None = None,
     norm_order: float = 2,
     *,
@@ -50,8 +51,12 @@ def min_width_critical_value_selection(
         raise_on_error=raise_on_error,
     )
 
-    tol = 0.05
-    penalty = 0.5
+    if band_type == BandType.CONFIDENCE:
+        penalty = 0.4
+        tol = 0.05
+    elif band_type == BandType.PREDICTION:
+        penalty = 3
+        tol = 0.01
 
     if distribution_type == DistributionType.GAUSSIAN:
         # Convert to JAX arrays for GaussianAlgorithm
@@ -70,6 +75,7 @@ def min_width_critical_value_selection(
             sd_diag=sd_diag_jax,
             norm_order=norm_order,
             n_samples=n_samples,
+            band_type=band_type,
             start_params=start_params,
             penalty=penalty,
         )
@@ -83,6 +89,7 @@ def min_width_critical_value_selection(
             sd_diag=sd_diag,
             norm_order=norm_order,
             n_samples=n_samples,
+            band_type=band_type,
             start_params=start_params,
             penalty=penalty,
             degrees_of_freedom=degrees_of_freedom,
@@ -116,6 +123,7 @@ class GaussianAlgorithm:
     sd_diag: Array
     norm_order: float
     n_samples: int
+    band_type: BandType
     start_params: Array | None = None
     penalty: float = 1.0
 
@@ -131,6 +139,12 @@ class GaussianAlgorithm:
         self.penalized_objective_gradient = allow_numpy_input(
             jit(grad(self._penalized_objective))
         )
+        if self.band_type == BandType.CONFIDENCE:
+            self.sample_size_factor = 1 / self.n_samples
+        elif self.band_type == BandType.PREDICTION:
+            self.sample_size_factor = 1.0
+        else:
+            raise ValueError(f"Unknown band type: {self.band_type}")
 
     def solve(self, algorithm: OptimagicAlgorithm) -> om.OptimizeResult:
         return _solve(self, algorithm)
@@ -142,7 +156,7 @@ class GaussianAlgorithm:
         )
 
     def _objective(self, u: Array) -> float:
-        return jnp.sum(u**2 * self.sd_diag_interval_integral) / self.n_samples
+        return jnp.sum(u**2 * self.sd_diag_interval_integral) * self.sample_size_factor
 
     def _constraint(self, u: Array) -> float:
         scalings_dot_roughness = jnp.dot(self._scaling(u), self.roughness_integrals)
@@ -165,6 +179,7 @@ class StudentTAlgorithm:
     sd_diag: NDArray[np.floating]
     norm_order: float
     n_samples: int
+    band_type: BandType
     start_params: NDArray[np.floating] | None = None
     penalty: float = 1.0
     degrees_of_freedom: float | None = None
@@ -176,6 +191,12 @@ class StudentTAlgorithm:
         self.sd_diag_interval_integral = calculate_piecewise_integrals(
             self.interval_cutoffs, values=self.sd_diag, time_grid=self.time_grid
         )
+        if self.band_type == BandType.CONFIDENCE:
+            self.sample_size_factor = 1 / self.n_samples
+        elif self.band_type == BandType.PREDICTION:
+            self.sample_size_factor = 1.0
+        else:
+            raise ValueError(f"Unknown band type: {self.band_type}")
 
     def solve(self, algorithm: OptimagicAlgorithm) -> om.OptimizeResult:
         return _solve(self, algorithm)
@@ -194,10 +215,10 @@ class StudentTAlgorithm:
         ) * self._constraint_gradient(u)
 
     def _objective(self, u: NDArray[np.floating]) -> float:
-        return np.sum(u**2 * self.sd_diag_interval_integral) / self.n_samples
+        return np.sum(u**2 * self.sd_diag_interval_integral) * self.sample_size_factor
 
     def _objective_gradient(self, u: NDArray[np.floating]) -> NDArray[np.floating]:
-        return 2 * u * self.sd_diag_interval_integral / self.n_samples
+        return 2 * u * self.sd_diag_interval_integral * self.sample_size_factor
 
     def _constraint(self, u: NDArray[np.floating]) -> float:
         scalings_dot_roughness = np.dot(self._scaling(u), self.roughness_integrals)

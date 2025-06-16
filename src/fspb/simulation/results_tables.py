@@ -31,19 +31,21 @@ def produce_prediction_publication_table(
     }
 
     result = result.reset_index()
-    result = result.rename(columns=var_rename_mapping)
-    result = result.set_index(["Method", "$n$", r"$\nu$"])
-    result = result.unstack(level="Method")  # type: ignore[return-value]
-
-    columns = pd.MultiIndex.from_tuples(
-        [
-            (
-                metric,
-                "CI" if method == "CI (Linear)" else method,
-            )
-            for (metric, method) in result.columns.to_list()
-        ]
+    result["method"] = (
+        result["method"]
+        .astype(pd.CategoricalDtype(["fair", "ci"], ordered=True))
+        .cat.rename_categories(
+            {
+                "fair": "Fair",
+                "ci": "CI",
+            }
+        )
     )
+    result = result.rename(columns=var_rename_mapping)
+    result = result.set_index(["method", "$n$", r"$\nu$"])
+    result = result.unstack(level="method")  # type: ignore[return-value]
+    columns = result.columns
+    columns.names = [None, None]
     result.columns = columns
     return result
 
@@ -67,21 +69,9 @@ def produce_confidence_publication_table(
         combined[column] = mean_col.astype(str) + " (" + std_col.astype(str) + ")"
 
     result = pd.DataFrame(combined).reset_index()
-    covariance_type_dtype = pd.CategoricalDtype(
-        categories=["stationary", "non_stationary"], ordered=True
-    )
-    result["covariance_type"] = (
-        result["covariance_type"]
-        .astype(covariance_type_dtype)
-        .cat.rename_categories(
-            {
-                "stationary": "S",
-                "non_stationary": "NS",
-            },
-        )
-    )
-    result["band_method"] = (
-        result["band_method"]
+
+    result["method"] = (
+        result["method"]
         .astype(pd.CategoricalDtype(["fair", "min_width"], ordered=True))
         .cat.rename_categories(
             {
@@ -90,7 +80,7 @@ def produce_confidence_publication_table(
             }
         )
     )
-    result = result.set_index(["covariance_type", "n_samples", "dof"])
+    result = result.set_index(["n_samples", "dof"])
 
     var_rename_mapping = {
         "coverage": "Coverage",
@@ -98,16 +88,13 @@ def produce_confidence_publication_table(
         "band_score": "Band Score",
         "n_samples": "$n$",
         "dof": r"$\nu$",
-        "covariance_type": r"$\gamma_{st}$",
-        "band_method": "Band Method",
+        "method": "Method",
     }
 
     result = result.reset_index()
     result = result.rename(columns=var_rename_mapping)
-    result = result.set_index(
-        [r"$\gamma_{st}$", "$n$", r"$\nu$", "Band Method"]
-    ).sort_index()
-    result = result.unstack(level="Band Method")
+    result = result.set_index(["$n$", r"$\nu$", "Method"]).sort_index()
+    result = result.unstack(level="Method")
     columns = result.columns
     columns.names = [None, None]
     result.columns = columns

@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from functools import partial
 
 from fspb.bands.band import Band, BandType, BandOptions
-from fspb.types import CovarianceType
+from fspb.types import CovarianceType, EstimationMethod
 from fspb.simulation.model_simulation import (
     SimulationData,
     generate_default_time_grid,
@@ -106,20 +106,11 @@ def simulation_study(
     n_simulations: int,
     simulation_options: SimulationOptions,
     band_options: BandOptions,
+    estimation_method: EstimationMethod,
     n_cores: int = 1,
     seed: int | None = None,
 ) -> SimulationResult:
     """Run a simulation.
-
-    Args:
-        n_simulations: The number of simulations to run.
-        n_samples: The number of samples to simulate.
-        time_grid: The time grid to simulate the model for. Has shape (n_points,).
-        dof: The degrees of freedom of the Student's t distribution.
-        covariance_type: The type of covariance to use.
-        length_scale: The length scale of the covariance.
-        rng: The random state to use for the simulation.
-        n_cores: The number of cores to use for the simulation.
 
     Returns:
         A SimulationResult object.
@@ -141,6 +132,7 @@ def simulation_study(
         _single_simulation,
         simulation_options=simulation_options,
         band_options=band_options,
+        estimation_method=estimation_method,
         time_grid=time_grid,
     )
 
@@ -157,6 +149,7 @@ def simulation_study(
 def _single_simulation(
     simulation_options: SimulationOptions,
     band_options: BandOptions,
+    estimation_method: EstimationMethod,
     time_grid: NDArray[np.floating],
     rng: np.random.Generator,
 ) -> SingleSimulationResult:
@@ -190,7 +183,7 @@ def _single_simulation(
         significance_level=band_options.significance_level,
         distribution_type=band_options.distribution_type,
         norm_order=band_options.norm_order,
-        method=band_options.method,
+        method=estimation_method,
     )
 
     return SingleSimulationResult(
