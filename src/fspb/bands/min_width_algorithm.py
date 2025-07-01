@@ -1,7 +1,7 @@
 from typing import Callable
 import numpy as np
 from numpy.typing import NDArray
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from fspb.bands.fair_algorithm import (
     calculate_piecewise_integrals,
     fair_critical_value_selection,
@@ -98,7 +98,7 @@ def min_width_critical_value_selection(
         msg = f"Unsupported distribution type: {distribution_type}"
         raise ValueError(msg)
 
-    for _ in range(5):
+    for _ in range(20):
         res = algo.solve(algorithm=om.algos.scipy_lbfgsb(stopping_maxfun=1_000))
 
         constraint_value = algo._constraint(res.params)
@@ -109,6 +109,10 @@ def min_width_critical_value_selection(
         else:
             penalty *= 1.5
             start_params = res.params
+            algo = algo._replace(
+                start_params=start_params,
+                penalty=penalty,
+            )
 
     return res.params
 
@@ -167,6 +171,9 @@ class GaussianAlgorithm:
 
     def _scaling(self, u: Array) -> Array:
         return jax_norm.pdf(u) * jnp.sqrt(2 * jnp.pi)
+
+    def _replace(self, **kwargs) -> "GaussianAlgorithm":
+        return replace(self, **kwargs)
 
 
 @dataclass
@@ -238,13 +245,16 @@ class StudentTAlgorithm:
     def _cdf_gradient(self, x: float) -> float:
         return scipy_t.pdf(x, df=self.degrees_of_freedom)
 
-    def _scaling(self, x: float) -> float:
+    def _scaling(self, u: float) -> float:
         v = self.degrees_of_freedom
-        return (1 + x**2 / v) ** (-v / 2) / (2 * np.pi)
+        return (1 + u**2 / v) ** (-v / 2) / (2 * np.pi)
 
-    def _scaling_gradient(self, x: float) -> float:
+    def _scaling_gradient(self, u: float) -> float:
         v = self.degrees_of_freedom
-        return -x * (1 + x**2 / v) ** (-v / 2 - 1) / (2 * np.pi)
+        return (-u / (2 * np.pi)) * (1 + u**2 / v) ** (-v / 2 - 1)
+
+    def _replace(self, **kwargs) -> "StudentTAlgorithm":
+        return replace(self, **kwargs)
 
 
 def _solve(

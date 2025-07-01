@@ -19,7 +19,7 @@ from fspb.simulation.simulation_study import (
     SingleSimulationResult,
     SimulationResult,
 )
-from fspb.config import SRC, BLD_FIGURES, SKIP_R
+from fspb.config import SRC, BLD_FIGURES, SKIP_R, LENGTH_SCALE
 
 import matplotlib.pyplot as plt
 from fspb.bands.band import Band
@@ -44,7 +44,7 @@ for scenario in scenarios:
         n_samples=scenario.n_samples,
         dof=scenario.dof,
         covariance_type=scenario.covariance_type,
-        length_scale=0.4,
+        length_scale=LENGTH_SCALE,
     )
 
     band_options = BandOptions.from_scenario(scenario)

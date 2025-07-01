@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from numpy.typing import NDArray
 
-from fspb.config import SRC, BLD_FIGURES
+from fspb.config import SRC, BLD_FIGURES, LENGTH_SCALE
 from fspb.simulation.model_simulation import (
     CovarianceType,
     generate_default_time_grid,
@@ -108,7 +108,7 @@ def _generate_outcome_figure_data() -> dict[str, NDArray[np.floating]]:
         time_grid=time_grid,
         dof=5,
         covariance_type=CovarianceType.STATIONARY,
-        length_scale=0.4,
+        length_scale=LENGTH_SCALE,
         rng=rng,
     )
     non_stationary_data = simulate_from_model(
@@ -116,7 +116,7 @@ def _generate_outcome_figure_data() -> dict[str, NDArray[np.floating]]:
         time_grid=time_grid,
         dof=5,
         covariance_type=CovarianceType.NON_STATIONARY,
-        length_scale=0.4,
+        length_scale=LENGTH_SCALE,
         rng=rng,
     )
     return {

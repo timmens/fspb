@@ -14,6 +14,7 @@ from fspb.config import (
     BLD_SIMULATION,
     N_SIMULATIONS,
     N_JOBS,
+    LENGTH_SCALE,
 )
 from fspb.simulation.simulation_study import (
     simulation_study,
@@ -36,7 +37,7 @@ for scenario in PREDICTION_SCENARIOS + CONFIDENCE_SCENARIOS:
         n_samples=scenario.n_samples,
         dof=scenario.dof,
         covariance_type=scenario.covariance_type,
-        length_scale=1.0,
+        length_scale=LENGTH_SCALE,
     )
 
     band_options = BandOptions.from_scenario(scenario)
