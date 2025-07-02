@@ -151,8 +151,8 @@ def _predictor_function(
 
     """
     curve = scaling.reshape(-1, 1) * np.cos(2 * np.pi * time_grid)
-    upper = curve + 1/2
-    lower = curve - 1/2
+    upper = curve + 2/3
+    lower = curve - 2/3
     binary_covariate_boolean_reshaped = binary_covariate.astype(bool).reshape(-1, 1)
     return np.where(binary_covariate_boolean_reshaped, upper, lower)
 
@@ -208,7 +208,7 @@ def _matern_covariance(
     time_grid: NDArray[np.floating],
     covariance_type: CovarianceType,
     length_scale: float,
-    sigma: float = 1 / 4,
+    sigma: float = 1 / 3,
 ) -> NDArray[np.floating]:
     """Compute the Matern covariance matrix for the given time grid.
 

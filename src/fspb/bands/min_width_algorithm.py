@@ -284,7 +284,7 @@ def _solve(
         func=algo.constraint,
         derivative=algo.constraint_gradient,
         lower_bound=0,
-        upper_bound=algo.significance_level / 2 + 0.05,  # Adjusted tolerance
+        upper_bound=algo.significance_level / 2,
     )
 
     return om.minimize(
