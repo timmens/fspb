@@ -31,13 +31,18 @@ def produce_prediction_publication_table(
     }
 
     result = result.reset_index()
+    if "fair" in result["method"].values:
+        cats = ["fair", "ci"]
+    else:
+        cats = ["min_width", "ci"]
     result["method"] = (
         result["method"]
-        .astype(pd.CategoricalDtype(["fair", "ci"], ordered=True))
+        .astype(pd.CategoricalDtype(cats, ordered=True))
         .cat.rename_categories(
             {
                 "fair": "Fair",
                 "ci": "CI",
+                "min_width": "Min. Width",
             }
         )
     )
