@@ -52,10 +52,10 @@ def min_width_critical_value_selection(
     )
 
     if band_type == BandType.CONFIDENCE:
-        penalty = 0.4
+        penalty = 0.1
         tol = 0.05
     elif band_type == BandType.PREDICTION:
-        penalty = 3
+        penalty = 100
         tol = 0.01
 
     if distribution_type == DistributionType.GAUSSIAN:
