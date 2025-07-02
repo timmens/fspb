@@ -77,7 +77,7 @@ def produce_confidence_publication_table(
 
     result["method"] = (
         result["method"]
-        .astype(pd.CategoricalDtype(["fair", "min_width"], ordered=True))
+        .astype(pd.CategoricalDtype(["min_width", "fair"], ordered=True))
         .cat.rename_categories(
             {
                 "fair": "Fair",

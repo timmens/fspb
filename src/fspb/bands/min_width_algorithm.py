@@ -51,12 +51,14 @@ def min_width_critical_value_selection(
         raise_on_error=raise_on_error,
     )
 
+    # Penalty is not used currently, since we use COBYLA, which allows us to handle the
+    # constraint directly.
     if band_type == BandType.CONFIDENCE:
         penalty = 0.1
-        tol = 0.05
+        maxiter = 100
     elif band_type == BandType.PREDICTION:
         penalty = 100
-        tol = 0.01
+        maxiter = 5
 
     if distribution_type == DistributionType.GAUSSIAN:
         # Convert to JAX arrays for GaussianAlgorithm
@@ -98,21 +100,27 @@ def min_width_critical_value_selection(
         msg = f"Unsupported distribution type: {distribution_type}"
         raise ValueError(msg)
 
-    for _ in range(20):
-        res = algo.solve(algorithm=om.algos.scipy_lbfgsb(stopping_maxfun=1_000))
+    res = algo.solve(
+        algorithm=om.algos.scipy_cobyla(
+            stopping_maxiter=maxiter,
+        )
+    )
 
-        constraint_value = algo._constraint(res.params)
-        print(f"Iteration with penalty {penalty}: {constraint_value}")
-        success = constraint_value <= significance_level / 2 + tol
-        if success:
-            break
-        else:
-            penalty *= 1.5
-            start_params = res.params
-            algo = algo._replace(
-                start_params=start_params,
-                penalty=penalty,
-            )
+    # for _ in range(20):
+    #     res = algo.solve(algorithm=om.algos.scipy_lbfgsb(stopping_maxfun=1_000))
+
+    #     constraint_value = algo._constraint(res.params)
+    #     print(f"Iteration with penalty {penalty}: {constraint_value}")
+    #     success = constraint_value <= significance_level / 2 + tol
+    #     if success:
+    #         break
+    #     else:
+    #         penalty *= 1.5
+    #         start_params = res.params
+    #         algo = algo._replace(
+    #             start_params=start_params,
+    #             penalty=penalty,
+    #         )
 
     return res.params
 
@@ -132,10 +140,10 @@ class GaussianAlgorithm:
     penalty: float = 1.0
 
     def __post_init__(self) -> None:
-        # self.objective = allow_numpy_input(jit(self._objective))
-        # self.objective_gradient = allow_numpy_input(jit(grad(self._objective)))
-        # self.constraint = allow_numpy_input(jit(self._constraint))
-        # self.constraint_gradient = allow_numpy_input(jit(grad(self._constraint)))
+        self.objective = allow_numpy_input(jit(self._objective))
+        self.objective_gradient = allow_numpy_input(jit(grad(self._objective)))
+        self.constraint = allow_numpy_input(jit(self._constraint))
+        self.constraint_gradient = allow_numpy_input(jit(grad(self._constraint)))
         self.sd_diag_interval_integral = calculate_piecewise_integrals(
             self.interval_cutoffs, values=self.sd_diag, time_grid=self.time_grid
         )
@@ -204,6 +212,10 @@ class StudentTAlgorithm:
             self.sample_size_factor = 1.0
         else:
             raise ValueError(f"Unknown band type: {self.band_type}")
+        self.objective = self._objective
+        self.objective_gradient = self._objective_gradient
+        self.constraint = self._constraint
+        self.constraint_gradient = self._constraint_gradient
 
     def solve(self, algorithm: OptimagicAlgorithm) -> om.OptimizeResult:
         return _solve(self, algorithm)
@@ -267,12 +279,21 @@ def _solve(
 
     bounds = om.Bounds(lower=np.zeros_like(u0))
 
+    constraint = om.NonlinearConstraint(
+        selector=lambda params: params,
+        func=algo.constraint,
+        derivative=algo.constraint_gradient,
+        lower_bound=0,
+        upper_bound=algo.significance_level / 2 + 0.05,  # Adjusted tolerance
+    )
+
     return om.minimize(
-        fun=algo.penalized_objective,
-        jac=algo.penalized_objective_gradient,
+        fun=algo.objective,
+        jac=algo.objective_gradient,
         params=u0,
         bounds=bounds,
         algorithm=algorithm,
+        constraints=constraint,
     )
 
 
