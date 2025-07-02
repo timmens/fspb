@@ -120,7 +120,7 @@ def _simulate_predictor(
 
     """
     binary_covariate = _simulate_binary_covariate(n_samples=n_samples, rng=rng)
-    scaling = rng.uniform(0.75, 1.25, size=n_samples)
+    scaling = rng.uniform(1, 2, size=n_samples)
     x = _predictor_function(
         time_grid=time_grid, binary_covariate=binary_covariate, scaling=scaling
     )
@@ -151,8 +151,8 @@ def _predictor_function(
 
     """
     curve = scaling.reshape(-1, 1) * np.cos(2 * np.pi * time_grid)
-    upper = curve + 1 / 2
-    lower = curve - 1 / 2
+    upper = curve + 1
+    lower = curve - 1
     binary_covariate_boolean_reshaped = binary_covariate.astype(bool).reshape(-1, 1)
     return np.where(binary_covariate_boolean_reshaped, upper, lower)
 

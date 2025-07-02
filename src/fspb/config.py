@@ -23,7 +23,7 @@ SKIP_R = False
 
 N_SIMULATIONS = 1_000
 N_JOBS = 10
-LENGTH_SCALE = 0.4
+LENGTH_SCALE = 1
 
 # If running on Tim's laptop (thinky), move results to paper directory
 if socket.gethostname() == "thinky":
