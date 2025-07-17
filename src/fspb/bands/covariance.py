@@ -115,7 +115,7 @@ def _calculate_sigma_x(x: NDArray[np.floating]) -> NDArray[np.floating]:
 
 def _calculate_sigma_x_inv(x: NDArray[np.floating]) -> NDArray[np.floating]:
     sigma_x = _calculate_sigma_x(x)
-    return np.linalg.inv(sigma_x).astype(np.float64)
+    return np.linalg.pinv(sigma_x).astype(np.float64)
 
 
 def _calculate_error_covariance(
