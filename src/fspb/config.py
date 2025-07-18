@@ -21,9 +21,9 @@ BLD_FIGURES = BLD / "figures"
 
 SKIP_R = False
 
-N_SIMULATIONS = 10
+N_SIMULATIONS = 100
 N_JOBS = 10
-LENGTH_SCALE = 1
+LENGTH_SCALE = 1.0
 
 # If running on Tim's laptop (thinky), move results to paper directory
 if socket.gethostname() == "thinky":

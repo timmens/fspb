@@ -59,7 +59,7 @@ class SimulationResult:
         """The band scores of the simulation."""
         scores_list = [
             result.band.band_score(
-                true_f, signifance_level=self.band_options.significance_level
+                true_f, significance_level=self.band_options.significance_level
             )
             for result, true_f in zip(self.simulation_results, self.band_center_func())
         ]

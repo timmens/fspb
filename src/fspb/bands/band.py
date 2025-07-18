@@ -44,7 +44,9 @@ class Band:
             return np.nan
         return np.max(self.upper - self.lower)
 
-    def band_score(self, func: NDArray[np.floating], signifance_level: float) -> float:
+    def band_score(
+        self, func: NDArray[np.floating], significance_level: float
+    ) -> float:
         """Calculate the band score of the band.
 
         Args:
@@ -57,16 +59,10 @@ class Band:
         """
         if _is_invalid(self.lower, self.upper):
             return np.nan
-        maximum_width_statistic = self.maximum_width_statistic
-        maximum_low_to_func = np.max(
-            self.lower - func, where=func < self.lower, initial=0
-        )
-        maximum_func_to_high = np.max(
-            func - self.upper, where=func > self.upper, initial=0
-        )
-        return maximum_width_statistic + (2 / signifance_level) * (
-            maximum_low_to_func + maximum_func_to_high
-        )
+        mws = self.maximum_width_statistic
+        max_low_to_func = np.max((self.lower - func) * (func < self.lower))
+        max_func_to_high = np.max((func - self.upper) * (func > self.upper))
+        return mws + (2 / significance_level) * (max_low_to_func + max_func_to_high)
 
     @classmethod
     def fit(

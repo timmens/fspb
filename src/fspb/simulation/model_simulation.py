@@ -151,8 +151,8 @@ def _predictor_function(
 
     """
     curve = scaling.reshape(-1, 1) * np.cos(2 * np.pi * time_grid)
-    upper = curve + 2/3
-    lower = curve - 2/3
+    upper = curve + 2 / 3
+    lower = curve - 2 / 3
     binary_covariate_boolean_reshaped = binary_covariate.astype(bool).reshape(-1, 1)
     return np.where(binary_covariate_boolean_reshaped, upper, lower)
 
@@ -223,30 +223,52 @@ def _matern_covariance(
         The covariance matrix.
 
     """
-    time_mesh_t, time_mesh_s = np.meshgrid(time_grid, time_grid)
-    absolute_distance = np.abs(time_mesh_t - time_mesh_s)
-
     if covariance_type == CovarianceType.STATIONARY:
-        nu = np.full(absolute_distance.shape, 3 / 2)
+        return _matern_covariance_stationary(
+            time_grid=time_grid, length_scale=length_scale, sigma=sigma
+        )
     elif covariance_type == CovarianceType.NON_STATIONARY:
-        nu = 2 + np.sqrt(np.maximum(time_mesh_t, time_mesh_s)) * (1 / 4 - 2)
+        return _matern_covariance_non_stationary(
+            time_grid=time_grid, length_scale=length_scale, sigma=sigma
+        )
     else:
         raise ValueError("Invalid covariance type.")
 
-    factor = np.sqrt(2 * nu) * absolute_distance / length_scale
 
-    cov = np.empty_like(absolute_distance)
+def _matern_covariance_non_stationary(
+    time_grid: NDArray[np.floating],
+    length_scale: float,
+    sigma: float = 1 / 3,
+) -> NDArray[np.floating]:
+    """Here, gamma_st = 2 + sqrt(max(t, s)) * (1/4 - 2)."""
+    time_mesh_t, time_mesh_s = np.meshgrid(time_grid, time_grid)
+    absolute_distance = np.abs(time_mesh_t - time_mesh_s)
+    gamma_st = 2 + np.sqrt(np.maximum(time_mesh_t, time_mesh_s)) * (1 / 4 - 2)
+
+    factor = np.sqrt(2 * gamma_st) * absolute_distance / length_scale
+
+    cov = np.full_like(absolute_distance, sigma**2)
     mask = absolute_distance > 0
-
     cov[mask] = (
         sigma**2
-        * (2 ** (1 - nu[mask]) / sp.special.gamma(nu[mask]))
-        * (factor[mask]) ** (nu[mask])
-        * sp.special.kv(nu[mask], factor[mask])
+        * (2 ** (1 - gamma_st[mask]) / sp.special.gamma(gamma_st[mask]))
+        * (factor[mask]) ** (gamma_st[mask])
+        * sp.special.kv(gamma_st[mask], factor[mask])
     )
-    cov[~mask] = sigma**2
-
     return cov
+
+
+def _matern_covariance_stationary(
+    time_grid: NDArray[np.floating], length_scale: float, sigma: float = 1 / 3
+) -> NDArray[np.floating]:
+    """Here, gamma_st = 3/2."""
+    time_mesh_t, time_mesh_s = np.meshgrid(time_grid, time_grid)
+    absolute_distance = np.abs(time_mesh_t - time_mesh_s)
+    return (
+        (sigma**2)
+        * (1 + np.sqrt(3) * absolute_distance / length_scale)
+        * np.exp(-np.sqrt(3) * absolute_distance / length_scale)
+    )
 
 
 # ======================================================================================
