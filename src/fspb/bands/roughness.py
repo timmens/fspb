@@ -1,23 +1,17 @@
 import numpy as np
 from scipy.interpolate import RectBivariateSpline
 from numpy.typing import NDArray
-from typing import Any
 
 
 def calculate_roughness_on_grid(
     cov: NDArray[np.floating],
     time_grid: NDArray[np.floating],
-    *,
-    smooth: bool = True,
-    smooth_kwargs: dict[str, Any] | None = None,
 ) -> NDArray[np.floating]:
-    """Calculate the roughness function on a grid using tensor product spline interpolation.
+    """Calculate the roughness function on a grid.
 
     Args:
         time_grid: The time grid.
         cov: The estimated covariance matrix.
-        smooth: Whether to smooth the covariance matrix using a Gaussian filter.
-        smooth_kwargs: Keyword arguments for the Gaussian filter.
 
     Returns:
         The roughness function on the grid.
@@ -25,16 +19,14 @@ def calculate_roughness_on_grid(
     """
     corr = _cov_to_corr(cov)
     roughness_numerical = _calculate_roughness_on_grid_numerical_diff(corr, time_grid)
-    roughness_splines = _calculate_roughness_on_grid_splines(
-        corr, time_grid, smooth_kwargs=smooth_kwargs
-    )
+    roughness_splines = _calculate_roughness_on_grid_splines(corr, time_grid)
     return (roughness_numerical + roughness_splines) / 2
 
 
 def _calculate_roughness_on_grid_numerical_diff(
     corr: NDArray[np.floating],
     time_grid: NDArray[np.floating],
-):
+) -> NDArray[np.floating]:
     dx = time_grid[1] - time_grid[0]
 
     corr_dx = np.gradient(corr, dx, axis=0)
@@ -46,11 +38,8 @@ def _calculate_roughness_on_grid_numerical_diff(
 def _calculate_roughness_on_grid_splines(
     corr: NDArray[np.floating],
     time_grid: NDArray[np.floating],
-    smooth_kwargs: dict[str, Any] | None = None,
-):
-    if smooth_kwargs is None:
-        smooth_kwargs = {"kx": 4, "ky": 4}
-    spline = RectBivariateSpline(time_grid, time_grid, corr, **smooth_kwargs)
+) -> NDArray[np.floating]:
+    spline = RectBivariateSpline(time_grid, time_grid, corr, kx=4, ky=4)
     partial_derivative = spline(time_grid, time_grid, dx=1, dy=1)
     roughness_squared = np.diag(partial_derivative)
     return np.sqrt(roughness_squared)
