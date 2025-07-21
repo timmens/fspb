@@ -4,3 +4,7 @@
 
 - [x] Matern covariance function
 - [x] Simulate error
+
+## `roughness.py`
+
+- [x] Roughness calculation

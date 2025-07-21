@@ -121,7 +121,8 @@ def _calculate_sigma_x_inv(x: NDArray[np.floating]) -> NDArray[np.floating]:
 def _calculate_error_covariance(
     residuals: NDArray[np.floating],
 ) -> NDArray[np.floating]:
-    return residuals.T @ residuals / (len(residuals) - 1)
+    degrees_of_freedom = 2  # We have an intercept and a slope in the model
+    return residuals.T @ residuals / (len(residuals) - degrees_of_freedom)
 
 
 def _multiply_a_B_a(
