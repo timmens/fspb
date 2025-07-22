@@ -12,4 +12,7 @@
 ## `covariance.py`
 
 - [x] Covariance estimation (confident that it is correct in the homosk. case)
+
+## `dof.py`
+
 - [x] DOF estimation (very confident that the estimation is mediocre)

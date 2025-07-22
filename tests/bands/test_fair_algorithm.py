@@ -72,8 +72,8 @@ def test_gaussian_algorithm_scaling():
         roughness_integrals=np.array([1], dtype=float),
         interval_lengths=np.array([1], dtype=float),
     )
-    # scaling = norm.pdf(x). At x=0 => ~0.3989
-    expected = norm.pdf(0.0)
+    # scaling = norm.pdf(x) * np.sqrt(2 * np.pi). At x=0 => ~0.3989
+    expected = norm.pdf(0.0) * np.sqrt(2 * np.pi)
     assert abs(algo._scaling(0.0) - expected) < 1e-7
 
 

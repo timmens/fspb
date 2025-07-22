@@ -39,7 +39,8 @@ def test_simulate_binary_covariate():
 def test_predictor_function():
     t = np.linspace(0, 1, 5)
     binary_covariate = np.array([0, 1])
-    x = _predictor_function(t, binary_covariate)
+    scaling = np.array([1.0, 2.0])
+    x = _predictor_function(t, binary_covariate, scaling)
     # Expect shape = (2, 5)
     assert x.shape == (2, 5)
 

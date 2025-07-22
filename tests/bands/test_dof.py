@@ -29,6 +29,7 @@ def test_estimate_dof(data):
     assert got == expected
 
 
+@pytest.mark.filterwarnings("ignore:invalid value encountered in divide")
 def test_estimate_dof_edge_cases():
     """Test DOF estimation with edge cases."""
     # Case 1: All zeros - kurtosis becomes NaN, no values > 3.1, returns 30.0
