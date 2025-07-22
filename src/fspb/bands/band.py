@@ -19,7 +19,17 @@ class Band:
     lower: NDArray[np.floating]
     upper: NDArray[np.floating]
 
-    def contains(self, func: NDArray[np.floating]) -> bool | float:
+    def __post_init__(self) -> None:
+        if _is_invalid(self.lower, self.upper):
+            raise ValueError(
+                "Invalid band: lower or upper bound contains NaN or Inf values."
+            )
+        if np.any(self.upper < self.lower):
+            raise ValueError(
+                "Upper bound must be greater than or equal to lower bound."
+            )
+
+    def contains(self, func: NDArray[np.floating]) -> bool:
         """Check if the band contains another function.
 
         Args:
@@ -29,8 +39,6 @@ class Band:
             True if the band contains func, False otherwise.
 
         """
-        if _is_invalid(self.lower, self.upper):
-            return np.nan
         return bool(np.all(func >= self.lower) and np.all(func <= self.upper))
 
     @property
@@ -41,8 +49,6 @@ class Band:
             The maximum width statistic of the band.
 
         """
-        if _is_invalid(self.lower, self.upper):
-            return np.nan
         return np.max(self.upper - self.lower)
 
     def band_score(
@@ -52,14 +58,12 @@ class Band:
 
         Args:
             func: Has shape (n_time_points, )
-            signifance_level: The significance level of the band.
+            significance_level: The significance level of the band.
 
         Returns:
             The band score of the band.
 
         """
-        if _is_invalid(self.lower, self.upper):
-            return np.nan
         mws = self.maximum_width_statistic
         max_low_to_func = np.max((self.lower - func) * (func < self.lower))
         max_func_to_high = np.max((func - self.upper) * (func > self.upper))
@@ -80,6 +84,7 @@ class Band:
         norm_order: float,
         method: EstimationMethod,
     ) -> Band:
+        """Fit a linear model and calculate the corresponding simultaneous band."""
         model = ConcurrentLinearModel()
         model.fit(x, y)
 
