@@ -11,9 +11,9 @@ from fspb.bands.covariance import (
     _multiply_a_B,
     _multiply_c_B,
     _multiply_c_a,
-    dof_estimate,
     _estimate_scaling_covariance_and_dof,
 )
+from fspb.bands.dof import estimate_dof
 import pytest
 import numpy as np
 from numpy.testing import assert_array_equal
@@ -148,26 +148,11 @@ def test_calculate_covariance_prediction_band(data):
     assert np.all(got >= confidence_covariance / n_samples)
 
 
-def test_dof_estimate(data):
-    """Test DOF estimation using method of moments."""
-    _, _, residuals = data
-    # residuals = [[-1, -2], [0, 0], [1, 2]]
-    # mean_squared_residuals = [1, 2]
-    # mean_residuals_to_the_fourth = [1, 8]
-    # a_hat = mean_residuals_to_the_fourth / mean_squared_residuals**2 = [1, 8] / [1, 4] = [1, 2]
-    # dof_candidates = 2 * (2 * a_hat - 3) / (a_hat - 3) = 2 * (2*[1,2] - 3) / ([1,2] - 3) = 2 * [-1, 1] / [-2, -1] = [1, -2]
-    # result = max(min(dof_candidates), 4.001) = max(min([1, -2]), 4.001) = max(-2, 4.001) = 4.001
-
-    expected = 4.001
-    got = dof_estimate(residuals)
-    assert got == expected
-
-
 def test_estimate_scaling_covariance_and_dof(data):
     """Test scaling covariance estimation."""
     _, _, residuals = data
     sigma_error = _calculate_error_covariance(residuals)  # [[2, 4], [4, 8]]
-    dof = dof_estimate(residuals)  # 4.001
+    dof = estimate_dof(residuals)  # 4.001
     expected = sigma_error * (dof - 2) / dof  # [[2, 4], [4, 8]] * (4.001 - 2) / 4.001
 
     got = _estimate_scaling_covariance_and_dof(residuals)
@@ -222,28 +207,6 @@ def test_calculate_covariance_heteroskedastic_not_implemented(data):
             band_type=BandType.CONFIDENCE,
             error_assumption=ErrorAssumption.HETEROSKEDASTIC,
         )
-
-
-def test_dof_estimate_edge_cases():
-    """Test DOF estimation with edge cases."""
-    # Case 1: All zeros - division by zero results in NaN
-    residuals_zeros = np.zeros((5, 3))
-    dof = dof_estimate(residuals_zeros)
-    # When residuals are zero, we get NaN from division by zero
-    assert np.isnan(dof)
-
-    # Case 2: Constant non-zero values
-    residuals_constant = np.ones((4, 2))
-    dof = dof_estimate(residuals_constant)
-    # mean_squared = [1, 1], mean_fourth = [1, 1], a_hat = [1, 1]
-    # dof_candidates = 2 * (2*1 - 3) / (1 - 3) = 2 * (-1) / (-2) = 1
-    # min = 1, max(1, 4.001) = 4.001
-    assert dof == 4.001
-
-    # Case 3: Some variation
-    residuals_varied = np.array([[1, 2], [0, 1], [2, 0], [1, 1]])
-    dof = dof_estimate(residuals_varied)
-    assert dof >= 4.001  # Should be at least minimum
 
 
 def test_error_covariance_different_shapes():

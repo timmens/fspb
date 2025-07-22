@@ -2,6 +2,7 @@ from fspb.config import BandType
 from numpy.typing import NDArray
 import numpy as np
 from enum import StrEnum, auto
+from fspb.bands.dof import estimate_dof
 
 
 class ErrorAssumption(StrEnum):
@@ -193,32 +194,5 @@ def _estimate_scaling_covariance_and_dof(
     residuals: NDArray[np.floating],
 ) -> NDArray[np.floating]:
     sigma_error = _calculate_error_covariance(residuals)
-    dof = dof_estimate(residuals)
+    dof = estimate_dof(residuals)
     return sigma_error * (dof - 2) / dof
-
-
-def dof_estimate(residuals: NDArray[np.floating]) -> float:
-    return _dof_estimate_singh(residuals)
-
-
-def _dof_estimate_singh(residuals: NDArray[np.floating]) -> float:
-    """Estimate the degrees of freedom of the residuals using the Singh method.
-
-    This estimation method is based on the Singh (1988) method, but extended to the
-    functional data setting.
-
-    Args:
-        residuals: The residuals of the model. Has shape (n_samples, n_time_points).
-
-    Returns:
-        The estimated degrees of freedom.
-
-    """
-    mean_residuals_to_the_fourth = np.mean(residuals**4, axis=0)
-    mean_squared_residuals = np.mean(residuals**2, axis=0)
-    kurtosis = mean_residuals_to_the_fourth / mean_squared_residuals**2
-    mask = kurtosis > 3.1
-    if not mask.any():
-        return 30.0
-    dof_candidates = 6 / (kurtosis[mask] - 3) + 4
-    return np.min(dof_candidates)

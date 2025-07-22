@@ -117,3 +117,7 @@ Scenarios are defined by:
 - R environment is managed separately with renv
 - Some tasks may take significant time due to simulation complexity
 - Build artifacts are organized by scenario parameters for systematic comparison
+
+## Code Style and Import Guidelines
+
+- Do not use relative imports, always start with the package name and then traverse the package structure. I.e., do not do from .dof import ..., but do from fspb.bands.dof import ...!

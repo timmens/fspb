@@ -8,7 +8,8 @@ from fspb.bands.roughness import calculate_roughness_on_grid
 from fspb.bands.fair_algorithm import fair_critical_value_selection
 from fspb.types import DistributionType, EstimationMethod
 from fspb.bands.min_width_algorithm import min_width_critical_value_selection
-from fspb.bands.covariance import calculate_covariance, dof_estimate
+from fspb.bands.covariance import calculate_covariance
+from fspb.bands.dof import estimate_dof
 from fspb.config import BandType, Scenario
 
 
@@ -91,7 +92,7 @@ class Band:
             band_type=band_type,
         )
 
-        dof_hat = dof_estimate(residuals)
+        dof_hat = estimate_dof(residuals)
 
         roughness = calculate_roughness_on_grid(
             cov=covariance,
@@ -161,7 +162,7 @@ class BandOptions:
         interval_cutoffs: NDArray[np.floating] | None = None,
         significance_level: float | None = None,
         norm_order: float | None = None,
-    ):
+    ) -> BandOptions:
         if distribution_type is None:
             distribution_type = {
                 BandType.CONFIDENCE: DistributionType.GAUSSIAN,
