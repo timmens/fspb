@@ -21,11 +21,22 @@ def fair_critical_value_selection(
     *,
     raise_on_error: bool = True,
 ) -> NDArray[np.floating]:
+    """Select critical values for fair band estimation.
+
+    This implements Algorithm 1 from our paper. The CDF F and the roughness scaling
+    S, are defined for each distribution type. Therefore there exists a Gaussian and a
+    Student-t algorithm.
+
+    Returns:
+        An array of one critical value per interval section.
+
+    """
     distribution_type = parse_enum_type(distribution_type, DistributionType)
 
     roughness_integrals = calculate_piecewise_integrals(
         interval_cutoffs, values=roughness, time_grid=time_grid
     )
+    # Assuming that the intervals lengths are equal
     interval_lengths = interval_cutoffs[1:] - interval_cutoffs[:-1]
 
     algo: Algorithm
@@ -60,7 +71,13 @@ def fair_critical_value_selection(
             raise ValueError(f"Root for interval {k} did not converge")
         roots.append(root_result.root)
 
-    return np.array(roots, dtype=np.float64)
+    critical_values_per_interval = np.array(roots, dtype=np.floating)
+
+    return _map_values_per_interval_onto_grid(
+        interval_cutoffs=interval_cutoffs,
+        time_grid=time_grid,
+        values=critical_values_per_interval,
+    )
 
 
 @dataclass(frozen=True)
@@ -82,13 +99,25 @@ class Algorithm(ABC):
             )
 
     def _solve(self, interval_index: int, method: str) -> RootResults:
+        try:
+            result = root_scalar(
+                f=self._equation,
+                fprime=self._equation_gradient,
+                x0=1.0,
+                args=(interval_index,),
+                method="newton",
+            )
+            if result.converged:
+                return result
+        except Exception:
+            pass  # Catch rare numerical errors
+
+        # Fallback to brentq if Newton fails
         return root_scalar(  # type: ignore[call-overload]
             f=self._equation,
-            fprime=self._equation_gradient,
-            x0=0,
             args=(interval_index,),
-            bracket=[0, 25],
-            method=method,
+            bracket=[0, 10],
+            method="brentq",
         )
 
     def _equation(self, x: float, interval_index: int) -> float:
@@ -123,36 +152,36 @@ class Algorithm(ABC):
 
 @dataclass(frozen=True)
 class GaussianAlgorithm(Algorithm):
-    def _cdf(self, x: float) -> float:
-        return norm.cdf(x)
+    def _cdf(self, u: float) -> float:
+        return norm.cdf(u)
 
-    def _cdf_gradient(self, x: float) -> float:
-        return norm.pdf(x)
+    def _cdf_gradient(self, u: float) -> float:
+        return norm.pdf(u)
 
-    def _scaling(self, x: float) -> float:
-        return norm.pdf(x) * np.sqrt(2 * np.pi)
+    def _scaling(self, u: float) -> float:
+        return norm.pdf(u) / np.sqrt(2 * np.pi)
 
-    def _scaling_gradient(self, x: float) -> float:
-        return -x * norm.pdf(x) * np.sqrt(2 * np.pi)
+    def _scaling_gradient(self, u: float) -> float:
+        return -u * norm.pdf(u) / np.sqrt(2 * np.pi)
 
 
 @dataclass(frozen=True)
 class StudentTAlgorithm(Algorithm):
     degrees_of_freedom: float
 
-    def _cdf(self, x: float) -> float:
-        return t.cdf(x, df=self.degrees_of_freedom)
+    def _cdf(self, u: float) -> float:
+        return t.cdf(u, df=self.degrees_of_freedom)
 
-    def _cdf_gradient(self, x: float) -> float:
-        return t.pdf(x, df=self.degrees_of_freedom)
+    def _cdf_gradient(self, u: float) -> float:
+        return t.pdf(u, df=self.degrees_of_freedom)
 
-    def _scaling(self, x: float) -> float:
+    def _scaling(self, u: float) -> float:
         v = self.degrees_of_freedom
-        return (1 + x**2 / v) ** (-v / 2) / (2 * np.pi)
+        return (1 + u**2 / v) ** (-v / 2) / (2 * np.pi)
 
-    def _scaling_gradient(self, x: float) -> float:
+    def _scaling_gradient(self, u: float) -> float:
         v = self.degrees_of_freedom
-        return -x * (1 + x**2 / v) ** (-v / 2 - 1) / (2 * np.pi)
+        return -u * (1 + u**2 / v) ** (-v / 2 - 1) / (2 * np.pi)
 
 
 def calculate_piecewise_integrals(
@@ -182,3 +211,13 @@ def calculate_piecewise_integrals(
         integrals[i] = simpson(f_segment, t_segment)
 
     return integrals
+
+
+def _map_values_per_interval_onto_grid(
+    interval_cutoffs: NDArray[np.floating],
+    time_grid: NDArray[np.floating],
+    values: NDArray[np.floating],
+) -> NDArray[np.floating]:
+    """Map values defined per section onto the time grid."""
+    scaling_idx = np.searchsorted(interval_cutoffs[1:-1], time_grid)
+    return values[scaling_idx]
