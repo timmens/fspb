@@ -71,7 +71,7 @@ def fair_critical_value_selection(
             raise ValueError(f"Root for interval {k} did not converge")
         roots.append(root_result.root)
 
-    critical_values_per_interval = np.array(roots, dtype=np.floating)
+    critical_values_per_interval = np.array(roots, dtype=np.float64)
 
     return _map_values_per_interval_onto_grid(
         interval_cutoffs=interval_cutoffs,
