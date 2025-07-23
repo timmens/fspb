@@ -57,8 +57,7 @@ for scenario in scenarios:
         _scripts: list[Path] = [
             SRC / "bands" / "band.py",
             SRC / "bands" / "covariance.py",
-            SRC / "bands" / "fair_algorithm.py",
-            SRC / "bands" / "min_width_algorithm.py",
+            SRC / "bands" / "critical_values.py",
             SRC / "simulation" / "simulation_study.py",
             SRC / "simulation" / "model_simulation.py",
         ],

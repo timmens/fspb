@@ -120,12 +120,14 @@ def simulation_study(
         raise ValueError("n_cores must be at least 1")
 
     if seed is None:
-        seed = np.random.default_rng().integers(0, 1_000_000)
+        _seed = int(np.random.default_rng().integers(0, 1_000_000))
+    else:
+        _seed = seed
 
     time_grid = generate_default_time_grid()
 
     rng_per_simulation = [
-        np.random.default_rng(seed + loop_seed) for loop_seed in range(n_simulations)
+        np.random.default_rng(_seed + loop_seed) for loop_seed in range(n_simulations)
     ]
 
     single_simulation_partialled = partial(
