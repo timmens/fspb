@@ -5,9 +5,8 @@ from numpy.typing import NDArray
 from dataclasses import dataclass
 from fspb.bands.linear_model import ConcurrentLinearModel
 from fspb.bands.roughness import calculate_roughness_on_grid
-from fspb.bands.fair_algorithm import fair_critical_value_selection
 from fspb.types import DistributionType, EstimationMethod
-from fspb.bands.min_width_algorithm import min_width_critical_value_selection
+from fspb.bands.critical_values import solve_for_critical_values
 from fspb.bands.covariance import calculate_covariance
 from fspb.bands.dof import estimate_dof
 from fspb.config import BandType, Scenario
@@ -105,35 +104,19 @@ class Band:
         )
         sd_diag = np.sqrt(np.diag(covariance))
 
-        if method == EstimationMethod.FAIR:
-            critical_value_per_interval = fair_critical_value_selection(
-                significance_level=significance_level,
-                interval_cutoffs=interval_cutoffs,
-                roughness=roughness,
-                time_grid=time_grid,
-                distribution_type=distribution_type,
-                degrees_of_freedom=dof_hat,
-            )
-        elif method == EstimationMethod.MIN_WIDTH:
-            critical_value_per_interval = min_width_critical_value_selection(
-                significance_level=significance_level,
-                interval_cutoffs=interval_cutoffs,
-                roughness=roughness,
-                distribution_type=distribution_type,
-                degrees_of_freedom=dof_hat,
-                time_grid=time_grid,
-                sd_diag=sd_diag,
-                norm_order=norm_order,
-                n_samples=len(y),
-                band_type=band_type,
-            )
-        else:
-            raise ValueError(f"Unknown band method: {method}")
-
-        # Critical values are defined per interval section, so we need to map the
-        # values over the time grid interval.
-        scaling_idx = np.searchsorted(interval_cutoffs[1:-1], time_grid)
-        critical_values = critical_value_per_interval[scaling_idx]
+        critical_values = solve_for_critical_values(
+            significance_level=significance_level,
+            interval_cutoffs=interval_cutoffs,
+            roughness=roughness,
+            distribution_type=distribution_type,
+            degrees_of_freedom=dof_hat,
+            time_grid=time_grid,
+            sd_diag=sd_diag,
+            norm_order=norm_order,
+            n_samples=len(y),
+            band_type=band_type,
+            estimation_method=method,
+        )
 
         if band_type == BandType.CONFIDENCE:
             scaling = critical_values / np.sqrt(len(y))

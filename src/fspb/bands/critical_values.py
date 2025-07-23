@@ -5,19 +5,59 @@ from scipy.optimize import root_scalar, RootResults
 from scipy.stats import norm, t
 from scipy import integrate
 from abc import ABC, abstractmethod
-from joblib import Parallel, delayed
-from fspb.types import DistributionType, parse_enum_type
+from fspb.types import DistributionType, parse_enum_type, BandType, EstimationMethod
 
 
-def fair_critical_value_selection(
+def solve_for_critical_values(
+    significance_level: float,
+    interval_cutoffs: NDArray[np.floating],
+    time_grid: NDArray[np.floating],
+    sd_diag: NDArray[np.floating],
+    roughness: NDArray[np.floating],
+    distribution_type: DistributionType,
+    n_samples: int,
+    band_type: BandType,
+    degrees_of_freedom: float | None = None,
+    norm_order: float = 2,
+    *,
+    estimation_method: EstimationMethod,
+    raise_on_error: bool = True,
+) -> NDArray[np.floating]:
+    # if estimation_method == EstimationMethod.FAIR:
+    return _fair_critical_value_selection(
+        significance_level=significance_level,
+        interval_cutoffs=interval_cutoffs,
+        time_grid=time_grid,
+        roughness=roughness,
+        distribution_type=distribution_type,
+        degrees_of_freedom=degrees_of_freedom,
+        raise_on_error=raise_on_error,
+    )
+    # elif estimation_method == EstimationMethod.MIN_WIDTH:
+    #     return _min_width_critical_value_selection(
+    #         significance_level=significance_level,
+    #         interval_cutoffs=interval_cutoffs,
+    #         time_grid=time_grid,
+    #         sd_diag=sd_diag,
+    #         roughness=roughness,
+    #         distribution_type=distribution_type,
+    #         degrees_of_freedom=degrees_of_freedom,
+    #         norm_order=norm_order,
+    #         n_samples=n_samples,
+    #         band_type=band_type,
+    #         raise_on_error=raise_on_error,
+    #     )
+    # else:
+    #     raise ValueError(f"Unknown estimation method: {estimation_method}")
+
+
+def _fair_critical_value_selection(
     significance_level: float,
     interval_cutoffs: NDArray[np.floating],
     time_grid: NDArray[np.floating],
     roughness: NDArray[np.floating],
     distribution_type: DistributionType | str,
     degrees_of_freedom: float | None = None,
-    method: str = "brentq",
-    n_cores: int = 1,
     *,
     raise_on_error: bool = True,
 ) -> NDArray[np.floating]:
@@ -62,7 +102,7 @@ def fair_critical_value_selection(
             degrees_of_freedom=degrees_of_freedom,
         )
 
-    root_results = algo.solve(method=method, n_cores=n_cores)
+    root_results = algo.solve()
 
     roots = []
 
@@ -87,18 +127,11 @@ class Algorithm(ABC):
     roughness_integrals: NDArray[np.floating]
     interval_lengths: NDArray[np.floating]
 
-    def solve(self, method: str = "brentq", n_cores: int = 1) -> list[RootResults]:
+    def solve(self) -> list[RootResults]:
         interval_ids = range(len(self.interval_cutoffs) - 1)
+        return [self._solve(interval_id) for interval_id in interval_ids]
 
-        if n_cores == 1:
-            return [self._solve(interval_id, method) for interval_id in interval_ids]
-        else:
-            return Parallel(n_jobs=n_cores)(
-                delayed(self._solve)(interval_id, method)
-                for interval_id in interval_ids
-            )
-
-    def _solve(self, interval_index: int, method: str) -> RootResults:
+    def _solve(self, interval_index: int) -> RootResults:
         try:
             result = root_scalar(
                 f=self._equation,
