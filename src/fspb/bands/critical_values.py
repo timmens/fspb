@@ -1,10 +1,12 @@
 import numpy as np
 from numpy.typing import NDArray
 from dataclasses import dataclass
-from scipy.optimize import root_scalar, RootResults
+from scipy.optimize import root_scalar
 from scipy.stats import norm, t
+from optimagic.optimization.algorithm import Algorithm as OptimagicAlgorithm
 from scipy import integrate
 from abc import ABC, abstractmethod
+import optimagic as om
 from fspb.types import DistributionType, parse_enum_type, BandType, EstimationMethod
 
 
@@ -17,67 +19,25 @@ def solve_for_critical_values(
     distribution_type: DistributionType,
     n_samples: int,
     band_type: BandType,
-    degrees_of_freedom: float | None = None,
-    norm_order: float = 2,
+    degrees_of_freedom: float,
     *,
     estimation_method: EstimationMethod,
-    raise_on_error: bool = True,
 ) -> NDArray[np.floating]:
-    # if estimation_method == EstimationMethod.FAIR:
-    return _fair_critical_value_selection(
-        significance_level=significance_level,
-        interval_cutoffs=interval_cutoffs,
-        time_grid=time_grid,
-        roughness=roughness,
-        distribution_type=distribution_type,
-        degrees_of_freedom=degrees_of_freedom,
-        raise_on_error=raise_on_error,
-    )
-    # elif estimation_method == EstimationMethod.MIN_WIDTH:
-    #     return _min_width_critical_value_selection(
-    #         significance_level=significance_level,
-    #         interval_cutoffs=interval_cutoffs,
-    #         time_grid=time_grid,
-    #         sd_diag=sd_diag,
-    #         roughness=roughness,
-    #         distribution_type=distribution_type,
-    #         degrees_of_freedom=degrees_of_freedom,
-    #         norm_order=norm_order,
-    #         n_samples=n_samples,
-    #         band_type=band_type,
-    #         raise_on_error=raise_on_error,
-    #     )
-    # else:
-    #     raise ValueError(f"Unknown estimation method: {estimation_method}")
-
-
-def _fair_critical_value_selection(
-    significance_level: float,
-    interval_cutoffs: NDArray[np.floating],
-    time_grid: NDArray[np.floating],
-    roughness: NDArray[np.floating],
-    distribution_type: DistributionType | str,
-    degrees_of_freedom: float | None = None,
-    *,
-    raise_on_error: bool = True,
-) -> NDArray[np.floating]:
-    """Select critical values for fair band estimation.
-
-    This implements Algorithm 1 from our paper. The CDF F and the roughness scaling
-    S, are defined for each distribution type. Therefore there exists a Gaussian and a
-    Student-t algorithm.
-
-    Returns:
-        An array of one critical value per interval section.
-
-    """
     distribution_type = parse_enum_type(distribution_type, DistributionType)
 
     roughness_integrals = calculate_piecewise_integrals(
         interval_cutoffs, values=roughness, time_grid=time_grid
     )
+    sd_diag_integrals = calculate_piecewise_integrals(
+        interval_cutoffs, values=sd_diag, time_grid=time_grid
+    )
     # Assuming that the intervals lengths are equal
     interval_lengths = interval_cutoffs[1:] - interval_cutoffs[:-1]
+
+    SAMPLE_SIZE_FACTOR_LOOKUP = {
+        BandType.CONFIDENCE: 1 / n_samples,
+        BandType.PREDICTION: 1.0,
+    }
 
     algo: Algorithm
 
@@ -86,32 +46,39 @@ def _fair_critical_value_selection(
             significance_level=significance_level,
             interval_cutoffs=interval_cutoffs,
             roughness_integrals=roughness_integrals,
+            sd_diag_integrals=sd_diag_integrals,
             interval_lengths=interval_lengths,
+            sample_size_factor=SAMPLE_SIZE_FACTOR_LOOKUP[band_type],
         )
     elif distribution_type == DistributionType.STUDENT_T:
-        if degrees_of_freedom is None:
-            raise ValueError(
-                "Degrees of freedom must be provided for Student-t distribution"
-            )
-
         algo = StudentTAlgorithm(
             significance_level=significance_level,
             interval_cutoffs=interval_cutoffs,
             roughness_integrals=roughness_integrals,
+            sd_diag_integrals=sd_diag_integrals,
             interval_lengths=interval_lengths,
             degrees_of_freedom=degrees_of_freedom,
+            sample_size_factor=SAMPLE_SIZE_FACTOR_LOOKUP[band_type],
         )
+    else:
+        msg = f"Unsupported distribution type: {distribution_type}"
+        raise ValueError(msg)
 
-    root_results = algo.solve()
+    if estimation_method == EstimationMethod.FAIR:
+        critical_values_per_interval = algo.fair_solve()
+    elif estimation_method == EstimationMethod.MIN_WIDTH:
+        MAXITER_LOOKUP = {
+            BandType.CONFIDENCE: 100,
+            BandType.PREDICTION: 5,
+        }
 
-    roots = []
-
-    for k, root_result in enumerate(root_results):
-        if raise_on_error and not root_result.converged:
-            raise ValueError(f"Root for interval {k} did not converge")
-        roots.append(root_result.root)
-
-    critical_values_per_interval = np.array(roots, dtype=np.float64)
+        critical_values_per_interval = algo.min_width_solve(
+            algorithm=om.algos.scipy_cobyla(
+                stopping_maxiter=MAXITER_LOOKUP[band_type],
+            )
+        )
+    else:
+        raise ValueError(f"Unknown estimation method: {estimation_method}")
 
     return _map_values_per_interval_onto_grid(
         interval_cutoffs=interval_cutoffs,
@@ -126,45 +93,107 @@ class Algorithm(ABC):
     interval_cutoffs: NDArray[np.floating]
     roughness_integrals: NDArray[np.floating]
     interval_lengths: NDArray[np.floating]
+    sd_diag_integrals: NDArray[np.floating]
+    sample_size_factor: float
 
-    def solve(self) -> list[RootResults]:
+    # Fair solution
+    # ==================================================================================
+    def fair_solve(self) -> NDArray[np.floating]:
         interval_ids = range(len(self.interval_cutoffs) - 1)
-        return [self._solve(interval_id) for interval_id in interval_ids]
+        roots = [self._fair_solve_interval(interval_id) for interval_id in interval_ids]
+        return np.array(roots, dtype=np.float64)
 
-    def _solve(self, interval_index: int) -> RootResults:
+    def _fair_solve_interval(self, interval_index: int) -> float:
         try:
-            result = root_scalar(
-                f=self._equation,
-                fprime=self._equation_gradient,
+            root_result = root_scalar(
+                f=self._fair_equation,
+                fprime=self._fair_equation_gradient,
                 x0=1.0,
                 args=(interval_index,),
                 method="newton",
             )
-            if result.converged:
-                return result
+            if root_result.converged:
+                return root_result.root
         except Exception:
             pass  # Catch rare numerical errors
 
         # Fallback to brentq if Newton fails
-        return root_scalar(  # type: ignore[call-overload]
-            f=self._equation,
+        root_result = root_scalar(  # type: ignore[call-overload]
+            f=self._fair_equation,
             args=(interval_index,),
             bracket=[0, 10],
             method="brentq",
         )
+        if not root_result.converged:
+            raise ValueError(f"Root for interval {interval_index} did not converge")
+        return root_result.root
 
-    def _equation(self, x: float, interval_index: int) -> float:
+    def _fair_equation(self, x: float, interval_index: int) -> float:
         return (
             self._cdf(-x)
             + self._scaling(x) * self.roughness_integrals[interval_index]
             - (self.significance_level / 2) * self.interval_lengths[interval_index]
         )
 
-    def _equation_gradient(self, x: float, interval_index: int) -> float:
+    def _fair_equation_gradient(self, x: float, interval_index: int) -> float:
         return (
             -self._cdf_gradient(-x)
             + self._scaling_gradient(x) * self.roughness_integrals[interval_index]
         )
+
+    # Min-width solution
+    # ==================================================================================
+    def min_width_solve(
+        self,
+        algorithm: OptimagicAlgorithm,
+    ) -> NDArray[np.floating]:
+        # Use fair solution as starting point
+        u0 = self.fair_solve()
+
+        bounds = om.Bounds(lower=np.zeros_like(u0))
+
+        constraint = om.NonlinearConstraint(
+            selector=lambda params: params,
+            func=self._min_width_constraint,
+            derivative=self._min_width_constraint_gradient,
+            lower_bound=0,
+            upper_bound=self.significance_level / 2,
+        )
+
+        result = om.minimize(
+            fun=self._min_width_objective,
+            jac=self._min_width_objective_gradient,
+            params=u0,
+            bounds=bounds,
+            algorithm=algorithm,
+            constraints=constraint,
+        )
+        return result.params
+
+    def _min_width_objective(self, u: NDArray[np.floating]) -> float:
+        return np.sum(u**2 * self.sd_diag_integrals) * self.sample_size_factor
+
+    def _min_width_objective_gradient(
+        self, u: NDArray[np.floating]
+    ) -> NDArray[np.floating]:
+        return 2 * u * self.sd_diag_integrals * self.sample_size_factor
+
+    def _min_width_constraint(self, u: NDArray[np.floating]) -> float:
+        scalings_dot_roughness = np.dot(self._scaling(u), self.roughness_integrals)  # type: ignore[arg-type]
+        return self._cdf(-u[0]) + scalings_dot_roughness
+
+    def _min_width_constraint_gradient(
+        self, u: NDArray[np.floating]
+    ) -> NDArray[np.floating]:
+        grad_scaling = self._scaling_gradient(u)  # type: ignore[arg-type]
+        grad_cdf = -self._cdf_gradient(-u[0])
+        gradient = np.zeros_like(u)
+        gradient[0] = grad_cdf
+        gradient += grad_scaling * self.roughness_integrals
+        return gradient
+
+    # Abstract methods
+    # ==================================================================================
 
     @abstractmethod
     def _cdf(self, x: float) -> float:

@@ -1,10 +1,11 @@
-from fspb.bands.fair_algorithm import (
+from fspb.bands.critical_values import (
     calculate_piecewise_integrals,
-    fair_critical_value_selection,
+    solve_for_critical_values,
     GaussianAlgorithm,
     StudentTAlgorithm,
     DistributionType,
 )
+from fspb.types import BandType, EstimationMethod
 from scipy.stats import norm, t
 import numpy as np
 from numpy.testing import assert_array_almost_equal
@@ -32,12 +33,18 @@ def test_fair_critical_value_selection_gaussian():
     interval_cutoffs = np.array([0, 0.5, 1], dtype=float)
     time_grid = np.linspace(0, 1, 100)
     roughness = np.ones_like(time_grid)
-    result = fair_critical_value_selection(
+    sd_diag = np.ones_like(time_grid)  # Not used for Fair estimation method
+    result = solve_for_critical_values(
         significance_level=0.05,
         interval_cutoffs=interval_cutoffs,
         time_grid=time_grid,
+        sd_diag=sd_diag,
         roughness=roughness,
+        n_samples=10,
+        band_type=BandType.CONFIDENCE,
         distribution_type=DistributionType.GAUSSIAN,
+        degrees_of_freedom=10,
+        estimation_method=EstimationMethod.FAIR,
     )
     assert result.shape == (100,)  # Now returns array same length as time_grid
     # Check that critical values are constant within each interval
@@ -53,6 +60,8 @@ def test_gaussian_algorithm_cdf():
         interval_cutoffs=np.array([0, 1], dtype=float),
         roughness_integrals=np.array([1], dtype=float),
         interval_lengths=np.array([1], dtype=float),
+        sd_diag_integrals=np.array([1], dtype=float),
+        sample_size_factor=1.0,
     )
     # norm.cdf(0) should be 0.5
     assert abs(algo._cdf(0.0) - 0.5) < 1e-7
@@ -64,6 +73,8 @@ def test_gaussian_algorithm_cdf_gradient():
         interval_cutoffs=np.array([0, 1], dtype=float),
         roughness_integrals=np.array([1], dtype=float),
         interval_lengths=np.array([1], dtype=float),
+        sd_diag_integrals=np.array([1], dtype=float),
+        sample_size_factor=1.0,
     )
     # norm.pdf(0) ~ 0.3989
     expected = norm.pdf(0.0)
@@ -76,6 +87,8 @@ def test_gaussian_algorithm_scaling():
         interval_cutoffs=np.array([0, 1], dtype=float),
         roughness_integrals=np.array([1], dtype=float),
         interval_lengths=np.array([1], dtype=float),
+        sd_diag_integrals=np.array([1], dtype=float),
+        sample_size_factor=1.0,
     )
     # scaling = norm.pdf(x) / np.sqrt(2 * np.pi). At x=0 => ~0.1592
     expected = norm.pdf(0.0) / np.sqrt(2 * np.pi)
@@ -88,6 +101,8 @@ def test_studentt_algorithm_cdf():
         interval_cutoffs=np.array([0, 1], dtype=float),
         roughness_integrals=np.array([1], dtype=float),
         interval_lengths=np.array([1], dtype=float),
+        sd_diag_integrals=np.array([1], dtype=float),
+        sample_size_factor=1.0,
         degrees_of_freedom=10,
     )
     # t.cdf(0, df=10) == 0.5
@@ -100,6 +115,8 @@ def test_studentt_algorithm_pdf():
         interval_cutoffs=np.array([0, 1], dtype=float),
         roughness_integrals=np.array([1], dtype=float),
         interval_lengths=np.array([1], dtype=float),
+        sd_diag_integrals=np.array([1], dtype=float),
+        sample_size_factor=1.0,
         degrees_of_freedom=10,
     )
     expected = t.pdf(0.0, df=10)
@@ -113,6 +130,8 @@ def test_gaussian_algorithm_scaling_values():
         interval_cutoffs=np.array([0, 1], dtype=float),
         roughness_integrals=np.array([1], dtype=float),
         interval_lengths=np.array([1], dtype=float),
+        sd_diag_integrals=np.array([1], dtype=float),
+        sample_size_factor=1.0,
     )
 
     # Test multiple points
@@ -132,6 +151,8 @@ def test_gaussian_algorithm_scaling_gradient():
         interval_cutoffs=np.array([0, 1], dtype=float),
         roughness_integrals=np.array([1], dtype=float),
         interval_lengths=np.array([1], dtype=float),
+        sd_diag_integrals=np.array([1], dtype=float),
+        sample_size_factor=1.0,
     )
 
     # Test multiple points
@@ -151,6 +172,8 @@ def test_gaussian_algorithm_scaling_symmetry():
         interval_cutoffs=np.array([0, 1], dtype=float),
         roughness_integrals=np.array([1], dtype=float),
         interval_lengths=np.array([1], dtype=float),
+        sd_diag_integrals=np.array([1], dtype=float),
+        sample_size_factor=1.0,
     )
 
     # Scaling function should be even: S(x) = S(-x)
@@ -170,6 +193,8 @@ def test_gaussian_algorithm_numerical_consistency():
         interval_cutoffs=np.array([0, 0.5, 1], dtype=float),
         roughness_integrals=np.array([0.5, 0.5], dtype=float),
         interval_lengths=np.array([0.5, 0.5], dtype=float),
+        sd_diag_integrals=np.array([0.5, 0.5], dtype=float),
+        sample_size_factor=1.0,
     )
 
     # Test that the equation evaluates correctly
@@ -181,13 +206,13 @@ def test_gaussian_algorithm_numerical_consistency():
         norm.cdf(-x) + (norm.pdf(x) / np.sqrt(2 * np.pi)) * 0.5 - (0.05 / 2) * 0.5
     )
 
-    result_eq = algo._equation(x, interval_idx)
+    result_eq = algo._fair_equation(x, interval_idx)
     assert abs(result_eq - expected_eq) < 1e-10
 
     # Test gradient: -cdf_gradient(-x) + scaling_gradient(x) * roughness_integral
     expected_grad = -norm.pdf(-x) + (-x * norm.pdf(x) / np.sqrt(2 * np.pi)) * 0.5
 
-    result_grad = algo._equation_gradient(x, interval_idx)
+    result_grad = algo._fair_equation_gradient(x, interval_idx)
     assert abs(result_grad - expected_grad) < 1e-10
 
 
@@ -198,6 +223,8 @@ def test_gaussian_scaling_normalization():
         interval_cutoffs=np.array([0, 1], dtype=float),
         roughness_integrals=np.array([1], dtype=float),
         interval_lengths=np.array([1], dtype=float),
+        sd_diag_integrals=np.array([1], dtype=float),
+        sample_size_factor=1.0,
     )
 
     # At x=0, norm.pdf(0) = 1/sqrt(2*pi), so scaling should be 1/(2*pi)

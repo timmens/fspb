@@ -80,7 +80,6 @@ class Band:
         interval_cutoffs: NDArray[np.floating],
         significance_level: float,
         distribution_type: DistributionType,
-        norm_order: float,
         method: EstimationMethod,
     ) -> Band:
         """Fit a linear model and calculate the corresponding simultaneous band."""
@@ -112,7 +111,6 @@ class Band:
             degrees_of_freedom=dof_hat,
             time_grid=time_grid,
             sd_diag=sd_diag,
-            norm_order=norm_order,
             n_samples=len(y),
             band_type=band_type,
             estimation_method=method,
@@ -140,7 +138,6 @@ class BandOptions:
     interval_cutoffs: NDArray[np.floating]
     significance_level: float
     distribution_type: DistributionType
-    norm_order: float
 
     @classmethod
     def from_scenario(
@@ -149,7 +146,6 @@ class BandOptions:
         distribution_type: DistributionType | None = None,
         interval_cutoffs: NDArray[np.floating] | None = None,
         significance_level: float | None = None,
-        norm_order: float | None = None,
     ) -> BandOptions:
         if distribution_type is None:
             distribution_type = {
@@ -163,15 +159,11 @@ class BandOptions:
         if significance_level is None:
             significance_level = 0.1
 
-        if norm_order is None:
-            norm_order = 2.0
-
         return cls(
             band_type=scenario.band_type,
             interval_cutoffs=interval_cutoffs,
             significance_level=significance_level,
             distribution_type=distribution_type,
-            norm_order=norm_order,
         )
 
 

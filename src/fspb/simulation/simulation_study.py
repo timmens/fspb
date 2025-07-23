@@ -182,7 +182,6 @@ def _single_simulation(
         interval_cutoffs=band_options.interval_cutoffs,
         significance_level=band_options.significance_level,
         distribution_type=band_options.distribution_type,
-        norm_order=band_options.norm_order,
         method=estimation_method,
     )
 
