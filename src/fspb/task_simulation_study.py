@@ -47,6 +47,7 @@ for scenario in PREDICTION_SCENARIOS + CONFIDENCE_SCENARIOS:
     common_script_deps: list[Path] = [
         SRC / "bands" / "band.py",
         SRC / "bands" / "covariance.py",
+        SRC / "bands" / "critical_values.py",
         SRC / "simulation" / "simulation_study.py",
         SRC / "simulation" / "model_simulation.py",
     ]
@@ -55,10 +56,7 @@ for scenario in PREDICTION_SCENARIOS + CONFIDENCE_SCENARIOS:
 
         @pytask.task(id=f"{method}/{scenario.to_str()}")
         def task_simulation_study_our_method(
-            _scripts: list[Path] = common_script_deps
-            + [
-                SRC / "bands" / f"{method.lower()}_algorithm.py",
-            ],
+            _scripts: list[Path] = common_script_deps,
             result_path: Annotated[Path, Product] = (
                 BLD_SIMULATION / method / f"{scenario.to_str()}.pkl"
             ),

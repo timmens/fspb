@@ -69,7 +69,7 @@ for scenario in scenarios:
             n_simulations=N_TRIALS,
             simulation_options=simulation_options,
             band_options=band_options,
-            estimation_method=EstimationMethod.FAIR,
+            estimation_method=EstimationMethod.MIN_WIDTH,
             n_cores=10,
             seed=BASE_SEED,
         )
@@ -267,7 +267,7 @@ def visualize_bands(
     fig.legend(
         handles,
         [
-            "Fair",
+            "Min-width",
             "Conformal inference",
             r"$Y_{\textsf{new}}(t)$",
             r"$X_{\textsf{new}}(t)^{\mathsf{T}} \hat{\beta}(t)$",
