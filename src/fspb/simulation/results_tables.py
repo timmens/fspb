@@ -41,16 +41,16 @@ def produce_prediction_publication_table(
         .cat.rename_categories(
             {
                 "fair": "Fair",
-                "ci": "CI",
+                "ci": "Conf. Inf.",
                 "min_width": "Min. Width",
             }
         )
     )
     result = result.rename(columns=var_rename_mapping)
     result = result.set_index(["method", "$n$", r"$\nu$"])
-    result = result.unstack(level="method")  # type: ignore[return-value]
+    result = result.unstack(level="method")  # type: ignore[assignment]
     columns = result.columns
-    columns.names = [None, None]
+    columns.names = [None, None]  # type: ignore[list-item]
     result.columns = columns
     return result
 
@@ -99,9 +99,9 @@ def produce_confidence_publication_table(
     result = result.reset_index()
     result = result.rename(columns=var_rename_mapping)
     result = result.set_index(["$n$", r"$\nu$", "Method"]).sort_index()
-    result = result.unstack(level="Method")
+    result = result.unstack(level="Method")  # type: ignore[assignment]
     columns = result.columns
-    columns.names = [None, None]
+    columns.names = [None, None]  # type: ignore[list-item]
     result.columns = columns
 
     return result
