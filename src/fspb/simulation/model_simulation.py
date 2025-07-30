@@ -1,20 +1,9 @@
 import numpy as np
 import scipy as sp
-from dataclasses import dataclass
 from numpy.typing import NDArray
 
 from fspb.bands.linear_model import ConcurrentLinearModel
-from fspb.types import CovarianceType
-
-
-@dataclass
-class SimulationData:
-    """The data from a simulation."""
-
-    y: NDArray[np.floating]
-    x: NDArray[np.floating]
-    time_grid: NDArray[np.floating]
-    model: ConcurrentLinearModel
+from fspb.types import CovarianceType, SimulationData
 
 
 def simulate_from_model(

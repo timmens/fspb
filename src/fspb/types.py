@@ -1,5 +1,11 @@
+from dataclasses import dataclass
 from enum import StrEnum, auto
 from typing import TypeVar
+
+from fspb.bands.linear_model import ConcurrentLinearModel
+
+import numpy as np
+from numpy.typing import NDArray
 
 T = TypeVar("T", bound=StrEnum)
 
@@ -40,3 +46,13 @@ def parse_enum_type(type_field: T | str, enum_type: type[T]) -> T:
             return enum_type(type_field)
         except ValueError:
             raise ValueError(f"Invalid type: {type_field}")
+
+
+@dataclass
+class SimulationData:
+    """The data from a simulation."""
+
+    y: NDArray[np.floating]
+    x: NDArray[np.floating]
+    time_grid: NDArray[np.floating]
+    model: ConcurrentLinearModel

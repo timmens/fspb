@@ -8,9 +8,8 @@ from dataclasses import dataclass
 from functools import partial
 
 from fspb.bands.band import Band, BandType, BandOptions
-from fspb.types import CovarianceType, EstimationMethod
+from fspb.types import CovarianceType, EstimationMethod, SimulationData
 from fspb.simulation.model_simulation import (
-    SimulationData,
     generate_default_time_grid,
     simulate_from_model,
 )

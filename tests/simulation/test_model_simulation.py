@@ -10,8 +10,8 @@ from fspb.simulation.model_simulation import (
     _simulate_error,
     _matern_covariance,
     generate_time_grid,
-    SimulationData,
 )
+from fspb.types import SimulationData
 
 
 def test_generate_time_grid():
