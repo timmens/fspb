@@ -4,6 +4,7 @@ from fspb.config import (
     PAPER_BLD,
     BLD_FIGURES,
     BLD_TABLES,
+    BLD_APPLICATION,
 )
 import pytask
 from pathlib import Path
@@ -17,6 +18,16 @@ from typing import Annotated
 def task_move_outcome_figure(
     outcome_figure_path: Path = BLD_FIGURES / "outcomes.pdf",
     to_path: Annotated[Path, Product] = PAPER_BLD / "outcomes.pdf",
+) -> None:
+    shutil.copy(outcome_figure_path, to_path)
+
+
+@pytask.mark.skipif(
+    not MOVE_RESULTS_TO_PAPER_DIR, reason="Not moving results to paper directory."
+)
+def task_move_application_outcome_figure(
+    outcome_figure_path: Path = BLD_APPLICATION / "application-outcomes.pdf",
+    to_path: Annotated[Path, Product] = PAPER_BLD / "application-outcomes.pdf",
 ) -> None:
     shutil.copy(outcome_figure_path, to_path)
 
