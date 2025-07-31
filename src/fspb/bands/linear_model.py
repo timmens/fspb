@@ -13,8 +13,7 @@ class ConcurrentLinearModel:
 
     """
 
-    intercept: NDArray[np.floating] = field(default_factory=lambda: np.array([np.nan]))
-    slope: NDArray[np.floating] = field(default_factory=lambda: np.array([np.nan]))
+    coefs: NDArray[np.floating] = field(default_factory=lambda: np.array([np.nan]))
     x_shape: tuple[int, ...] = tuple()
 
     def fit(self, x: NDArray[np.floating], y: NDArray[np.floating]) -> None:
@@ -33,9 +32,7 @@ class ConcurrentLinearModel:
         if y.shape[1] != x.shape[2]:
             raise ValueError("y and x must have the same number of time points")
 
-        intercept, slope = _fit(y, x)
-        self.intercept = intercept
-        self.slope = slope
+        self.coefs = _fit(y, x)
         self.x_shape = x.shape
 
     def predict(self, x_new: NDArray[np.floating]) -> NDArray[np.floating]:
@@ -53,7 +50,7 @@ class ConcurrentLinearModel:
         if not self.is_fitted:
             raise ValueError("Model is not fitted yet. Fit model first.")
 
-        if self.intercept is None or self.slope is None or self.x_shape is None:
+        if self.coefs is None or self.x_shape is None:
             raise ValueError("No model information available yet. Fit model.")
 
         if x_new.ndim == 2:
@@ -62,17 +59,13 @@ class ConcurrentLinearModel:
         if x_new.ndim != 3 or x_new.shape[1:] != self.x_shape[1:]:
             raise ValueError(f"x_new has invalid shape: {x_new.shape}")
 
-        pred = self.intercept * x_new[:, 0, :] + self.slope * x_new[:, 1, :]
+        pred = np.sum(self.coefs[np.newaxis, :, :] * x_new, axis=1)
         return np.squeeze(pred)
 
     @property
     def is_fitted(self) -> bool:
         """Check if the model is fitted."""
-        return not (
-            np.isnan(self.intercept).any()
-            or np.isnan(self.slope).any()
-            or not self.x_shape
-        )
+        return not (np.isnan(self.coefs).all() or not self.x_shape)
 
 
 def _fit(
