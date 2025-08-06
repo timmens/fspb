@@ -47,10 +47,11 @@ def simulate_from_model(
     )
 
     intercept = 0.5 * np.exp(-2 * time_grid)
+    slope = _slope_function(time_grid)
+    coefs = np.stack([intercept, slope], axis=1).T
 
     model = ConcurrentLinearModel(
-        intercept=intercept,
-        slope=_slope_function(time_grid),
+        coefs=coefs,
         x_shape=(n_samples, 2, len(time_grid)),
     )
 
