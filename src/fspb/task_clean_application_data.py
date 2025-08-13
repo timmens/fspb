@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 from pytask import task
+from scipy.interpolate import interp1d
 
 from fspb.config import SRC, BLD_APPLICATION
 
@@ -166,8 +167,7 @@ def _find_peak_indices(y: np.ndarray, interval: tuple[int, int]) -> np.ndarray:
 def _align_curves_at_peak(
     y: np.ndarray, peak_indices: np.ndarray, target_idx: int
 ) -> np.ndarray:
-    """
-    Shift each curve so its peak is at the target index.
+    """Shift each curve so its peak is at the target index.
 
     Args:
         y: Array of shape (n_samples, n_time_points).
@@ -176,6 +176,7 @@ def _align_curves_at_peak(
 
     Returns:
         Shifted array of same shape as y.
+
     """
     n_samples, n_time_points = y.shape
     shifted = np.full_like(y, np.nan)
@@ -212,9 +213,15 @@ def _interpolate_curves(y: np.ndarray, n_points: int) -> np.ndarray:
         Array of shape (n_samples, n_points).
     """
     n_samples, n_time_points = y.shape
-    x_old = np.linspace(0, 1, n_time_points)
-    x_new = np.linspace(0, 1, n_points)
+    time_grid_old = np.linspace(0, 1, n_time_points)
+    time_grid_new = np.linspace(0, 1, n_points)
     y_interp = np.empty((n_samples, n_points))
     for i in range(n_samples):
-        y_interp[i] = np.interp(x_new, x_old, y[i])
+        # Step 1: Find the valid (non-nan) indices
+        valid = ~np.isnan(y[i])
+        # Step 2: Create the interpolator with extrapolation
+        interp_func = interp1d(time_grid_old[valid], y[i][valid], kind="linear", fill_value="extrapolate", bounds_error=False)
+        # Step 3: Interpolate/extrapolate over the new time grid
+        y_interp[i] = interp_func(time_grid_new)
+
     return y_interp
