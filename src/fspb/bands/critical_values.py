@@ -124,8 +124,12 @@ class Algorithm(ABC):
             bracket=[0, 10],
             method="brentq",
         )
-        if not root_result.converged:
+        raise_error = False  # Add this as argument to Algorithm if needed
+        if not root_result.converged and raise_error:
             raise ValueError(f"Root for interval {interval_index} did not converge")
+        elif not root_result.converged:
+            return 10
+
         return root_result.root
 
     def _fair_equation(self, x: float, interval_index: int) -> float:

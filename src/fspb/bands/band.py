@@ -17,6 +17,9 @@ class Band:
     estimate: NDArray[np.floating]
     lower: NDArray[np.floating]
     upper: NDArray[np.floating]
+    critical_values: NDArray[np.floating] | None = None
+    roughness: NDArray[np.floating] | None = None
+    covariance: NDArray[np.floating] | None = None
 
     def __post_init__(self) -> None:
         if _is_invalid(self.lower, self.upper):
@@ -117,9 +120,9 @@ class Band:
         )
 
         if band_type == BandType.CONFIDENCE:
-            scaling = critical_values / np.sqrt(len(y))
+            scaling = 1.0 / np.sqrt(len(y))
         elif band_type == BandType.PREDICTION:
-            scaling = critical_values
+            scaling = 1.0
         else:
             raise ValueError(f"Unknown band type: {band_type}")
 
@@ -127,8 +130,11 @@ class Band:
 
         return Band(
             estimate=y_pred,
-            lower=y_pred - scaling * sd_diag,
-            upper=y_pred + scaling * sd_diag,
+            lower=y_pred - scaling * critical_values * sd_diag,
+            upper=y_pred + scaling * critical_values * sd_diag,
+            critical_values=critical_values,
+            roughness=roughness,
+            covariance=covariance,
         )
 
 

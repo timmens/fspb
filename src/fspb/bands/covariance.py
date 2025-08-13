@@ -53,7 +53,9 @@ def _calculate_covariance_confidence_band(
     error_assumption: ErrorAssumption,
 ) -> NDArray[np.floating]:
     if error_assumption == ErrorAssumption.HOMOSKEDASTIC:
-        return _calculate_covariance_confidence_band_homoskedastic(residuals, x, x_new)
+        return _calculate_covariance_confidence_band_homoskedastic(
+            residuals=residuals, x=x, x_new=x_new
+        )
     elif error_assumption == ErrorAssumption.HETEROSKEDASTIC:
         return _calculate_covariance_confidence_band_heteroskedastic(
             residuals, x, x_new
@@ -68,7 +70,7 @@ def _calculate_covariance_confidence_band_homoskedastic(
     x_new: NDArray[np.floating],
 ) -> NDArray[np.floating]:
     sigma_x_inv = _calculate_sigma_x_inv(x)
-    sigma_error = _calculate_error_covariance(residuals)
+    sigma_error = _calculate_error_covariance(residuals, n_parameters=x.shape[1])
     xt_sigma_x_inv_xt = _multiply_a_B_a(x_new, sigma_x_inv)
     return sigma_error * xt_sigma_x_inv_xt
 
@@ -98,7 +100,7 @@ def _calculate_covariance_prediction_band(
     sigma_CB = _calculate_covariance_confidence_band(
         residuals, x=x, x_new=x_new, error_assumption=error_assumption
     )
-    sigma_Z = _estimate_scaling_covariance_and_dof(residuals)
+    sigma_Z = _estimate_scaling_covariance_and_dof(residuals, n_parameters=x.shape[1])
     sigma_PB = sigma_CB / len(residuals) + sigma_Z
     return sigma_PB
 
@@ -121,9 +123,9 @@ def _calculate_sigma_x_inv(x: NDArray[np.floating]) -> NDArray[np.floating]:
 
 def _calculate_error_covariance(
     residuals: NDArray[np.floating],
+    n_parameters: int,
 ) -> NDArray[np.floating]:
-    degrees_of_freedom = 2  # We have an intercept and a slope in the model
-    return residuals.T @ residuals / (len(residuals) - degrees_of_freedom)
+    return residuals.T @ residuals / (len(residuals) - n_parameters)
 
 
 def _multiply_a_B_a(
@@ -139,7 +141,7 @@ def _multiply_a_B_a(
         The result of the multiplication. Has shape (n_time_points, n_time_points).
 
     """
-    return np.einsum("ps,stpp,pt->st", a, B, a)
+    return np.einsum("ps,stpk,kt->st", a, B, a, optimize=True)
 
 
 def _multiply_a_B(
@@ -155,7 +157,7 @@ def _multiply_a_B(
         The result of the multiplication. Has shape (n_time_points, n_time_points, n_features).
 
     """
-    return np.einsum("ps,stpp->stp", a, B)
+    return np.einsum("ps,stpp->stp", a, B, optimize=True)
 
 
 def _multiply_c_B(
@@ -171,7 +173,7 @@ def _multiply_c_B(
         The result of the multiplication. Has shape (n_time_points, n_time_points, n_features).
 
     """
-    return np.einsum("stp,stpp->stp", c, B)
+    return np.einsum("stp,stpk->stk", c, B, optimize=True)
 
 
 def _multiply_c_a(
@@ -191,8 +193,8 @@ def _multiply_c_a(
 
 
 def _estimate_scaling_covariance_and_dof(
-    residuals: NDArray[np.floating],
+    residuals: NDArray[np.floating], n_parameters: int
 ) -> NDArray[np.floating]:
-    sigma_error = _calculate_error_covariance(residuals)
+    sigma_error = _calculate_error_covariance(residuals, n_parameters=n_parameters)
     dof = estimate_dof(residuals)
     return sigma_error * (dof - 2) / dof
