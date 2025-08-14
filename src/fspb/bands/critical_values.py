@@ -3,18 +3,18 @@ from numpy.typing import NDArray
 from dataclasses import dataclass
 from scipy.optimize import root_scalar
 from scipy.stats import norm, t
-from optimagic.optimization.algorithm import Algorithm as OptimagicAlgorithm
 from scipy import integrate
 from abc import ABC, abstractmethod
-import optimagic as om
 from fspb.types import DistributionType, parse_enum_type, BandType, EstimationMethod
+
+MAX_CRITICAL_VALUE = 20.0  # Maximum critical value for the band
 
 
 def solve_for_critical_values(
     significance_level: float,
     interval_cutoffs: NDArray[np.floating],
     time_grid: NDArray[np.floating],
-    sd_diag: NDArray[np.floating],
+    covariance_diag: NDArray[np.floating],
     roughness: NDArray[np.floating],
     distribution_type: DistributionType,
     n_samples: int,
@@ -28,8 +28,8 @@ def solve_for_critical_values(
     roughness_integrals = calculate_piecewise_integrals(
         interval_cutoffs, values=roughness, time_grid=time_grid
     )
-    sd_diag_integrals = calculate_piecewise_integrals(
-        interval_cutoffs, values=sd_diag, time_grid=time_grid
+    covariance_diag_integrals = calculate_piecewise_integrals(
+        interval_cutoffs, values=covariance_diag, time_grid=time_grid
     )
     # Assuming that the intervals lengths are equal
     interval_lengths = interval_cutoffs[1:] - interval_cutoffs[:-1]
@@ -46,7 +46,7 @@ def solve_for_critical_values(
             significance_level=significance_level,
             interval_cutoffs=interval_cutoffs,
             roughness_integrals=roughness_integrals,
-            sd_diag_integrals=sd_diag_integrals,
+            covariance_diag_integrals=covariance_diag_integrals,
             interval_lengths=interval_lengths,
             sample_size_factor=SAMPLE_SIZE_FACTOR_LOOKUP[band_type],
         )
@@ -55,7 +55,7 @@ def solve_for_critical_values(
             significance_level=significance_level,
             interval_cutoffs=interval_cutoffs,
             roughness_integrals=roughness_integrals,
-            sd_diag_integrals=sd_diag_integrals,
+            covariance_diag_integrals=covariance_diag_integrals,
             interval_lengths=interval_lengths,
             degrees_of_freedom=degrees_of_freedom,
             sample_size_factor=SAMPLE_SIZE_FACTOR_LOOKUP[band_type],
@@ -67,16 +67,7 @@ def solve_for_critical_values(
     if estimation_method == EstimationMethod.FAIR:
         critical_values_per_interval = algo.fair_solve()
     elif estimation_method == EstimationMethod.MIN_WIDTH:
-        MAXITER_LOOKUP = {
-            BandType.CONFIDENCE: 100,
-            BandType.PREDICTION: 5,
-        }
-
-        critical_values_per_interval = algo.min_width_solve(
-            algorithm=om.algos.scipy_cobyla(
-                stopping_maxiter=MAXITER_LOOKUP[band_type],
-            )
-        )
+        critical_values_per_interval = algo.min_width_solve()
     else:
         raise ValueError(f"Unknown estimation method: {estimation_method}")
 
@@ -93,7 +84,7 @@ class Algorithm(ABC):
     interval_cutoffs: NDArray[np.floating]
     roughness_integrals: NDArray[np.floating]
     interval_lengths: NDArray[np.floating]
-    sd_diag_integrals: NDArray[np.floating]
+    covariance_diag_integrals: NDArray[np.floating]
     sample_size_factor: float
 
     # Fair solution
@@ -121,14 +112,14 @@ class Algorithm(ABC):
         root_result = root_scalar(  # type: ignore[call-overload]
             f=self._fair_equation,
             args=(interval_index,),
-            bracket=[0, 10],
+            bracket=[0, MAX_CRITICAL_VALUE],
             method="brentq",
         )
         raise_error = False  # Add this as argument to Algorithm if needed
         if not root_result.converged and raise_error:
             raise ValueError(f"Root for interval {interval_index} did not converge")
         elif not root_result.converged:
-            return 10
+            return MAX_CRITICAL_VALUE
 
         return root_result.root
 
@@ -149,38 +140,51 @@ class Algorithm(ABC):
     # ==================================================================================
     def min_width_solve(
         self,
-        algorithm: OptimagicAlgorithm,
     ) -> NDArray[np.floating]:
         # Use fair solution as starting point
         u0 = self.fair_solve()
 
-        bounds = om.Bounds(lower=np.zeros_like(u0))
+        import scipy.optimize as sp_opt
 
-        constraint = om.NonlinearConstraint(
-            selector=lambda params: params,
-            func=self._min_width_constraint,
-            derivative=self._min_width_constraint_gradient,
-            lower_bound=0,
-            upper_bound=self.significance_level / 2,
+        tol = 1e-3
+
+        constraint = sp_opt.NonlinearConstraint(
+            fun=self._min_width_constraint,
+            jac=self._min_width_constraint_gradient,
+            lb=self.significance_level / 2 - tol,
+            ub=self.significance_level / 2,
         )
 
-        result = om.minimize(
+        bounds = sp_opt.Bounds(
+            lb=0,
+            ub=MAX_CRITICAL_VALUE,
+        )
+
+        method_to_options = {
+            "COBYLA": {"maxiter": 10, "rhobeg": np.min(u0) / 500},
+            "trust-constr": {"initial_tr_radius": np.min(u0) / 100, "maxiter": 5},
+        }
+
+        method = "COBYLA"  # or "SLSQP", "trust-constr", etc.
+
+        res = sp_opt.minimize(
             fun=self._min_width_objective,
+            x0=u0,
             jac=self._min_width_objective_gradient,
-            params=u0,
-            bounds=bounds,
-            algorithm=algorithm,
             constraints=constraint,
+            method=method,
+            options=method_to_options.get(method, None),
+            bounds=bounds,
         )
-        return result.params
+        return res.x
 
     def _min_width_objective(self, u: NDArray[np.floating]) -> float:
-        return np.sum(u**2 * self.sd_diag_integrals) * self.sample_size_factor
+        return np.dot(u**2, self.covariance_diag_integrals)
 
     def _min_width_objective_gradient(
         self, u: NDArray[np.floating]
     ) -> NDArray[np.floating]:
-        return 2 * u * self.sd_diag_integrals * self.sample_size_factor
+        return 2 * u * self.covariance_diag_integrals
 
     def _min_width_constraint(self, u: NDArray[np.floating]) -> float:
         scalings_dot_roughness = np.dot(self._scaling(u), self.roughness_integrals)  # type: ignore[arg-type]
@@ -191,9 +195,8 @@ class Algorithm(ABC):
     ) -> NDArray[np.floating]:
         grad_scaling = self._scaling_gradient(u)  # type: ignore[arg-type]
         grad_cdf = -self._cdf_gradient(-u[0])
-        gradient = np.zeros_like(u)
-        gradient[0] = grad_cdf
-        gradient += grad_scaling * self.roughness_integrals
+        gradient = grad_scaling * self.roughness_integrals
+        gradient[0] += grad_cdf
         return gradient
 
     # Abstract methods

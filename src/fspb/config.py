@@ -23,7 +23,7 @@ BLD_APPLICATION = BLD / "application"
 SKIP_R = False
 
 N_SIMULATIONS = 1_000
-N_JOBS = 10
+N_JOBS = 12
 LENGTH_SCALE = 1.0
 
 # If running on Tim's laptop (thinky), move results to paper directory

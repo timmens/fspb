@@ -38,7 +38,7 @@ def test_fair_critical_value_selection_gaussian():
         significance_level=0.05,
         interval_cutoffs=interval_cutoffs,
         time_grid=time_grid,
-        sd_diag=sd_diag,
+        covariance_diag=sd_diag,
         roughness=roughness,
         n_samples=10,
         band_type=BandType.CONFIDENCE,
@@ -60,7 +60,7 @@ def test_gaussian_algorithm_cdf():
         interval_cutoffs=np.array([0, 1], dtype=float),
         roughness_integrals=np.array([1], dtype=float),
         interval_lengths=np.array([1], dtype=float),
-        sd_diag_integrals=np.array([1], dtype=float),
+        covariance_diag_integrals=np.array([1], dtype=float),
         sample_size_factor=1.0,
     )
     # norm.cdf(0) should be 0.5
@@ -73,7 +73,7 @@ def test_gaussian_algorithm_cdf_gradient():
         interval_cutoffs=np.array([0, 1], dtype=float),
         roughness_integrals=np.array([1], dtype=float),
         interval_lengths=np.array([1], dtype=float),
-        sd_diag_integrals=np.array([1], dtype=float),
+        covariance_diag_integrals=np.array([1], dtype=float),
         sample_size_factor=1.0,
     )
     # norm.pdf(0) ~ 0.3989
@@ -87,7 +87,7 @@ def test_gaussian_algorithm_scaling():
         interval_cutoffs=np.array([0, 1], dtype=float),
         roughness_integrals=np.array([1], dtype=float),
         interval_lengths=np.array([1], dtype=float),
-        sd_diag_integrals=np.array([1], dtype=float),
+        covariance_diag_integrals=np.array([1], dtype=float),
         sample_size_factor=1.0,
     )
     # scaling = norm.pdf(x) / np.sqrt(2 * np.pi). At x=0 => ~0.1592
@@ -101,7 +101,7 @@ def test_studentt_algorithm_cdf():
         interval_cutoffs=np.array([0, 1], dtype=float),
         roughness_integrals=np.array([1], dtype=float),
         interval_lengths=np.array([1], dtype=float),
-        sd_diag_integrals=np.array([1], dtype=float),
+        covariance_diag_integrals=np.array([1], dtype=float),
         sample_size_factor=1.0,
         degrees_of_freedom=10,
     )
@@ -115,7 +115,7 @@ def test_studentt_algorithm_pdf():
         interval_cutoffs=np.array([0, 1], dtype=float),
         roughness_integrals=np.array([1], dtype=float),
         interval_lengths=np.array([1], dtype=float),
-        sd_diag_integrals=np.array([1], dtype=float),
+        covariance_diag_integrals=np.array([1], dtype=float),
         sample_size_factor=1.0,
         degrees_of_freedom=10,
     )
@@ -130,7 +130,7 @@ def test_gaussian_algorithm_scaling_values():
         interval_cutoffs=np.array([0, 1], dtype=float),
         roughness_integrals=np.array([1], dtype=float),
         interval_lengths=np.array([1], dtype=float),
-        sd_diag_integrals=np.array([1], dtype=float),
+        covariance_diag_integrals=np.array([1], dtype=float),
         sample_size_factor=1.0,
     )
 
@@ -151,7 +151,7 @@ def test_gaussian_algorithm_scaling_gradient():
         interval_cutoffs=np.array([0, 1], dtype=float),
         roughness_integrals=np.array([1], dtype=float),
         interval_lengths=np.array([1], dtype=float),
-        sd_diag_integrals=np.array([1], dtype=float),
+        covariance_diag_integrals=np.array([1], dtype=float),
         sample_size_factor=1.0,
     )
 
@@ -172,7 +172,7 @@ def test_gaussian_algorithm_scaling_symmetry():
         interval_cutoffs=np.array([0, 1], dtype=float),
         roughness_integrals=np.array([1], dtype=float),
         interval_lengths=np.array([1], dtype=float),
-        sd_diag_integrals=np.array([1], dtype=float),
+        covariance_diag_integrals=np.array([1], dtype=float),
         sample_size_factor=1.0,
     )
 
@@ -193,7 +193,7 @@ def test_gaussian_algorithm_numerical_consistency():
         interval_cutoffs=np.array([0, 0.5, 1], dtype=float),
         roughness_integrals=np.array([0.5, 0.5], dtype=float),
         interval_lengths=np.array([0.5, 0.5], dtype=float),
-        sd_diag_integrals=np.array([0.5, 0.5], dtype=float),
+        covariance_diag_integrals=np.array([0.5, 0.5], dtype=float),
         sample_size_factor=1.0,
     )
 
@@ -223,7 +223,7 @@ def test_gaussian_scaling_normalization():
         interval_cutoffs=np.array([0, 1], dtype=float),
         roughness_integrals=np.array([1], dtype=float),
         interval_lengths=np.array([1], dtype=float),
-        sd_diag_integrals=np.array([1], dtype=float),
+        covariance_diag_integrals=np.array([1], dtype=float),
         sample_size_factor=1.0,
     )
 
