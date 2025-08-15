@@ -40,8 +40,8 @@ def solve_for_critical_values(
     }
 
     MAX_ITER = {
-        BandType.CONFIDENCE: 10,
-        BandType.PREDICTION: 100,
+        BandType.CONFIDENCE: 25,
+        BandType.PREDICTION: 25,
     }
 
     algo: Algorithm
@@ -167,7 +167,7 @@ class Algorithm(ABC):
         )
 
         method_to_options = {
-            "COBYLA": {"maxiter": maxiter, "rhobeg": np.min(u0) / 1_000},
+            "COBYLA": {"maxiter": maxiter, "rhobeg": np.min(u0) / 500},
             "trust-constr": {"maxiter": maxiter, "initial_tr_radius": np.min(u0) / 100},
         }
 

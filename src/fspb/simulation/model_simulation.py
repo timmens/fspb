@@ -141,8 +141,8 @@ def _predictor_function(
 
     """
     curve = scaling.reshape(-1, 1) * np.cos(2 * np.pi * time_grid)
-    upper = curve + 2 / 3
-    lower = curve - 2 / 3
+    upper = curve + 1
+    lower = curve - 1
     binary_covariate_boolean_reshaped = binary_covariate.astype(bool).reshape(-1, 1)
     return np.where(binary_covariate_boolean_reshaped, upper, lower)
 
