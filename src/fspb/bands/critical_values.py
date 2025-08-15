@@ -39,6 +39,11 @@ def solve_for_critical_values(
         BandType.PREDICTION: 1.0,
     }
 
+    MAX_ITER = {
+        BandType.CONFIDENCE: 10,
+        BandType.PREDICTION: 100,
+    }
+
     algo: Algorithm
 
     if distribution_type == DistributionType.GAUSSIAN:
@@ -67,7 +72,7 @@ def solve_for_critical_values(
     if estimation_method == EstimationMethod.FAIR:
         critical_values_per_interval = algo.fair_solve()
     elif estimation_method == EstimationMethod.MIN_WIDTH:
-        critical_values_per_interval = algo.min_width_solve()
+        critical_values_per_interval = algo.min_width_solve(maxiter=MAX_ITER[band_type])
     else:
         raise ValueError(f"Unknown estimation method: {estimation_method}")
 
@@ -140,6 +145,7 @@ class Algorithm(ABC):
     # ==================================================================================
     def min_width_solve(
         self,
+        maxiter: int,
     ) -> NDArray[np.floating]:
         # Use fair solution as starting point
         u0 = self.fair_solve()
@@ -149,7 +155,7 @@ class Algorithm(ABC):
         tol = 1e-3
 
         constraint = sp_opt.NonlinearConstraint(
-            fun=self._min_width_constraint,
+            fun=self._min_width_constraint,  # type: ignore[arg-type]
             jac=self._min_width_constraint_gradient,
             lb=self.significance_level / 2 - tol,
             ub=self.significance_level / 2,
@@ -161,14 +167,14 @@ class Algorithm(ABC):
         )
 
         method_to_options = {
-            "COBYLA": {"maxiter": 10, "rhobeg": np.min(u0) / 500},
-            "trust-constr": {"initial_tr_radius": np.min(u0) / 100, "maxiter": 5},
+            "COBYLA": {"maxiter": maxiter, "rhobeg": np.min(u0) / 1_000},
+            "trust-constr": {"maxiter": maxiter, "initial_tr_radius": np.min(u0) / 100},
         }
 
         method = "COBYLA"  # or "SLSQP", "trust-constr", etc.
 
         res = sp_opt.minimize(
-            fun=self._min_width_objective,
+            fun=self._min_width_objective,  # type: ignore[call-overload]
             x0=u0,
             jac=self._min_width_objective_gradient,
             constraints=constraint,
