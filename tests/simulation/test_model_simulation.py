@@ -5,7 +5,7 @@ from fspb.simulation.model_simulation import (
     simulate_from_model,
     _slope_function,
     _simulate_predictor,
-    _simulate_binary_covariate,
+    _simulate_vertical_shift,
     _predictor_function,
     _simulate_error,
     _matern_covariance,
@@ -31,7 +31,7 @@ def test_slope_function():
 def test_simulate_binary_covariate():
     rng = np.random.default_rng(0)
     n_samples = 5
-    b = _simulate_binary_covariate(n_samples, rng)
+    b = _simulate_vertical_shift(n_samples, rng)
     assert b.shape == (n_samples,)
     assert set(b) <= {0, 1}
 
