@@ -16,6 +16,8 @@ from fspb.config import SRC, SKIP_R, BLD_APPLICATION
 import matplotlib.pyplot as plt
 from fspb.bands.band import Band
 
+SIGNFICANCE_LEVEL = 0.1
+
 
 def task_fit_min_width_band(
     _scripts: list[Path] = [
@@ -41,7 +43,7 @@ def task_fit_min_width_band(
             band_type=BandType.PREDICTION,
             time_grid=np.linspace(0, 1, 101),
             interval_cutoffs=np.array([0, 1 / 3, 2 / 3, 1]),
-            significance_level=0.05,
+            significance_level=SIGNFICANCE_LEVEL,
             distribution_type=DistributionType.STUDENT_T,
             method=EstimationMethod.MIN_WIDTH,
         )
@@ -99,10 +101,10 @@ def task_run_conformal_inference_on_application_data(
     simulation_data_path: Path = (
         BLD_APPLICATION / "data_for_conformal_inference.json"
     ),
-    significance_level: float = 0.05,
+    significance_level: float = SIGNFICANCE_LEVEL,
     fit_method: str = str(CIPredictionMethod.MEAN),
     results_path: Annotated[Path, Product] = (
-        BLD_APPLICATION / "conformal_inference_results.pickle"
+        BLD_APPLICATION / "conformal_inference_results.json"
     ),
 ) -> None:
     pass
@@ -110,7 +112,7 @@ def task_run_conformal_inference_on_application_data(
 
 @pytask.mark.skipif(SKIP_R, reason="Not running R analysis.")
 def task_process_conformal_inference_results_to_bands(
-    their_result_path: Path = (BLD_APPLICATION / "conformal_inference_results.pickle"),
+    their_result_path: Path = BLD_APPLICATION / "conformal_inference_results.json",
     processed_path: Annotated[Path, Product] = (
         BLD_APPLICATION / "conformal_inference_bands.pickle"
     ),
@@ -138,6 +140,7 @@ def task_visualize_application_bands(
         BLD_APPLICATION / "conformal_inference_bands.pickle"
     ),
     y_new_path: Path = BLD_APPLICATION / "y_pred.pickle",
+    y_nearest_neighbors_path: Path = BLD_APPLICATION / "y_nearest_neighbors.pickle",
     figure_paths: Annotated[list[Path], Product] = [
         BLD_APPLICATION / f"amputee_band_{amputee_index}.pdf"  # type: ignore[name-defined]
         for amputee_index in range(7)
@@ -146,6 +149,7 @@ def task_visualize_application_bands(
     min_width_bands = pd.read_pickle(min_width_band_paths)
     conformal_inference_bands = pd.read_pickle(conformal_inference_band_paths)
     y_new = pd.read_pickle(y_new_path)
+    y_nearest_neighbors = pd.read_pickle(y_nearest_neighbors_path)
     for amputee_index, processed_path in enumerate(figure_paths):
         min_width_band = min_width_bands[amputee_index]
         conformal_inference_band = conformal_inference_bands[amputee_index]
@@ -153,6 +157,7 @@ def task_visualize_application_bands(
             min_width_band=min_width_band,
             conformal_inference_band=conformal_inference_band,
             new_y=y_new[amputee_index],
+            nearest_neighbor_y=y_nearest_neighbors[amputee_index],
         )
         fig.savefig(processed_path, bbox_inches="tight")
 
@@ -166,6 +171,7 @@ def visualize_bands(
     min_width_band: Band,
     conformal_inference_band: Band,
     new_y: np.ndarray,
+    nearest_neighbor_y: np.ndarray,
 ) -> plt.Figure:
     """Visualize the bands for the stationary and non-stationary cases."""
     PAPER_TEXT_WIDTH = 8.5 - 2  # us-letter width in inches minus margin
@@ -188,6 +194,7 @@ def visualize_bands(
         conformal_inference_band=conformal_inference_band,
         ax=ax,
         new_y=new_y,
+        nearest_neighbor_y=nearest_neighbor_y,
     )
 
     ax.spines["top"].set_visible(False)
@@ -203,6 +210,7 @@ def visualize_bands(
     ax.set_xticklabels(["$0$", "$1/3$", "$2/3$", "$1$"])
     # ax.set_yticks([-2, 0, 2])
     # ax.set_yticklabels(["$-2$", "$0$", "$2$"])
+    ax.set_ylabel("Force $(N/kg)$", fontsize=FIG_FONT_SIZE)
     ax.set_xlabel("$t$", fontsize=FIG_FONT_SIZE)
 
     # set legend
@@ -212,10 +220,11 @@ def visualize_bands(
         [
             "Min-width",
             "Conformal inference",
-            r"$Y_{\textsf{new}}(t)$",
-            r"$X_{\textsf{new}}(t)^{\mathsf{T}} \hat{\beta}(t)$",
+            r"$Y_{\textsf{amputee}}(t)$",
+            r"$Y_{\textsf{nearest-neighbor}}(t)$",
+            r"$X_{\textsf{amputee}}(t)^{\mathsf{T}} \hat{\beta}(t)$",
         ],
-        ncol=4,
+        ncol=3,
         loc="lower center",
         bbox_to_anchor=(0.52, -0.04),
         fontsize=FIG_FONT_SIZE,
@@ -231,6 +240,7 @@ def _visualize_bands(
     min_width_band: Band,
     conformal_inference_band: Band,
     new_y: np.ndarray,
+    nearest_neighbor_y: np.ndarray,
     ax: plt.Axes,
     set_legend: bool = False,
 ) -> plt.Axes:
@@ -268,7 +278,22 @@ def _visualize_bands(
         zorder=1,
     )
     ax.plot(
-        time_grid, new_y, label="True", color=tableau["yellow"], linewidth=2, zorder=4
+        time_grid,
+        new_y,
+        label="True",
+        color=tableau["yellow"],
+        linewidth=3,
+        zorder=4,
+        alpha=0.9,
+    )
+    ax.plot(
+        time_grid,
+        nearest_neighbor_y,
+        label="NN",
+        color=tableau["pink"],
+        linewidth=2,
+        zorder=3,
+        alpha=0.9,
     )
     ax.plot(
         time_grid,

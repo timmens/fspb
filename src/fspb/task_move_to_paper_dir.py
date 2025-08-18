@@ -79,3 +79,11 @@ for covariance_type in ("stationary", "non_stationary"):
         / f"confidence_{covariance_type}.tex",
     ) -> None:
         shutil.copy(simulation_results_table_path, to_path)
+
+
+def task_move_amputee_band_6(
+    application_analysis_result_band_path: Path = BLD_APPLICATION
+    / "amputee_band_6.pdf",
+    to_path: Annotated[Path, Product] = PAPER_BLD / "amputee_band.pdf",
+) -> None:
+    shutil.copy(application_analysis_result_band_path, to_path)

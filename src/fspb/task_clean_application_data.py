@@ -96,9 +96,52 @@ for amputee in (False, True):
         pd.to_pickle(updated, produces)
 
 
+# ======================================================================================
+# Find nearest-neighbor for each amputee
+# ======================================================================================
+
+
+def task_find_and_store_nearest_neighbor_trajectories(
+    x_train_path: Path = BLD_APPLICATION / "x_train.pickle",
+    x_new_path: Path = BLD_APPLICATION / "x_pred.pickle",
+    y_train_path: Path = BLD_APPLICATION / "y_train.pickle",
+    produces: Path = BLD_APPLICATION / "y_nearest_neighbors.pickle",
+) -> None:
+    x_train = pd.read_pickle(x_train_path)
+    x_new = pd.read_pickle(x_new_path)
+    y_train = pd.read_pickle(y_train_path)
+    nearest_neighbors = _find_nearest_neighbors_trajectories(
+        x_train=x_train,
+        x_new=x_new,
+        y_train=y_train,
+    )
+    pd.to_pickle(nearest_neighbors, produces)
+
+
 # --------------------------------------------------------------------------------------
 # Helper functions
 # --------------------------------------------------------------------------------------
+
+
+def _find_nearest_neighbors_trajectories(
+    x_train: np.ndarray,
+    x_new: np.ndarray,
+    y_train: np.ndarray,
+) -> np.ndarray:
+    y_nearest_neighbors_list = []
+    for amputee_index in range(len(x_new)):
+        idx = _find_nearest_neighbor(x_new[amputee_index], x_train)
+        y_nearest_neighbors_list.append(y_train[idx])
+    return np.array(y_nearest_neighbors_list)
+
+
+def _find_nearest_neighbor(
+    x1: np.ndarray,
+    x2: np.ndarray,
+) -> int:
+    """Find the index of the nearest neighbor in x2 for each sample in x1."""
+    distances = np.linalg.norm(x1.reshape(1, -1) - x2.reshape(len(x2), -1), axis=1)
+    return int(np.argmin(distances))
 
 
 def _create_outcome_array(
@@ -220,7 +263,13 @@ def _interpolate_curves(y: np.ndarray, n_points: int) -> np.ndarray:
         # Step 1: Find the valid (non-nan) indices
         valid = ~np.isnan(y[i])
         # Step 2: Create the interpolator with extrapolation
-        interp_func = interp1d(time_grid_old[valid], y[i][valid], kind="linear", fill_value="extrapolate", bounds_error=False)
+        interp_func = interp1d(
+            time_grid_old[valid],
+            y[i][valid],
+            kind="linear",
+            fill_value="extrapolate",
+            bounds_error=False,
+        )
         # Step 3: Interpolate/extrapolate over the new time grid
         y_interp[i] = interp_func(time_grid_new)
 
