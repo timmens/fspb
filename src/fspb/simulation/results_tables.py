@@ -31,10 +31,14 @@ def produce_prediction_publication_table(
     }
 
     result = result.reset_index()
-    if "fair" in result["method"].values:
-        cats = ["fair", "ci"]
-    else:
+    methods = set(result["method"].values)
+    if methods == {"min_width", "ci"}:
         cats = ["min_width", "ci"]
+    elif methods == {"min_width", "fair"}:
+        cats = ["min_width", "fair"]
+    else:
+        raise ValueError(f"Unexpected methods in result: {methods}")
+
     result["method"] = (
         result["method"]
         .astype(pd.CategoricalDtype(cats, ordered=True))
@@ -50,7 +54,7 @@ def produce_prediction_publication_table(
     result = result.set_index(["method", "$n$", r"$\nu$"])
     result = result.unstack(level="method")  # type: ignore[assignment]
     columns = result.columns
-    columns.names = [None, None]  # type: ignore[list-item]
+    columns.names = [None, None]
     result.columns = columns
     return result
 
@@ -101,7 +105,7 @@ def produce_confidence_publication_table(
     result = result.set_index(["$n$", r"$\nu$", "Method"]).sort_index()
     result = result.unstack(level="Method")  # type: ignore[assignment]
     columns = result.columns
-    columns.names = [None, None]  # type: ignore[list-item]
+    columns.names = [None, None]
     result.columns = columns
 
     return result

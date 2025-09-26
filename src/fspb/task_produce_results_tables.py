@@ -13,7 +13,7 @@ import pytask
 for covariance_type in ("stationary", "non_stationary"):
 
     @pytask.task(id=covariance_type)
-    def task_produce_prediction_table(
+    def task_produce_prediction_table_min_width_vs_ci(
         _script: Path = SRC / "simulation" / "results_tables.py",
         consolidated_path: Path = BLD_SIMULATION_PROCESSED / "consolidated.pkl",
         product_path: Annotated[Path, Product] = BLD_TABLES
@@ -25,6 +25,29 @@ for covariance_type in ("stationary", "non_stationary"):
             consolidated.xs("prediction", level="band_type")
             .xs(covariance_type, level="covariance_type")
             .query("method in ('min_width', 'ci')")
+        )
+        table = produce_prediction_publication_table(prediction_results)
+        table.to_latex(
+            product_path,
+            escape=False,
+            multicolumn=True,
+            multicolumn_format="c",
+            column_format="rr" + "c" * len(table.columns),
+        )
+
+    @pytask.task(id=covariance_type)
+    def task_produce_prediction_table_min_width_vs_fair(
+        _script: Path = SRC / "simulation" / "results_tables.py",
+        consolidated_path: Path = BLD_SIMULATION_PROCESSED / "consolidated.pkl",
+        product_path: Annotated[Path, Product] = BLD_TABLES
+        / f"prediction_{covariance_type}_min_width_vs_fair.tex",
+        covariance_type: str = covariance_type,
+    ) -> None:
+        consolidated: pd.DataFrame = pd.read_pickle(consolidated_path)
+        prediction_results = (
+            consolidated.xs("prediction", level="band_type")
+            .xs(covariance_type, level="covariance_type")
+            .query("method in ('min_width', 'fair')")
         )
         table = produce_prediction_publication_table(prediction_results)
         table.to_latex(

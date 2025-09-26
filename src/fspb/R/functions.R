@@ -21,56 +21,76 @@ extract_data_components = function(simulation_data) {
 }
 
 
-#' Fit the concurrent model.
-#'
-#' Taken from https://github.com/paolo-vergo/conformal-fd/blob/main/R/concurrent.R
-concurrent = function() {
+#' CONCURRENT LINEAR MODEL (y has shape N x 1 x T)
+#' x:     list(N) of list(P) of list(T)
+#' y:     list(N) of list(1) of list(T)
+#' newx:  list(M) of list(P) of list(T)
+#' Returns coeff: P x T
+#' @importFrom stats lm.fit
+#' @export
+concurrent <- function() {
 
-  train.fun = function(x,t,y) {
-
-
-    yy=lapply(y, rapply, f = c) # Now a list of n components (join the internal p lists)
-    xx=lapply(x, rapply, f = c)
-    yyy=do.call(rbind, yy) #Convert the previous yy to a matrix
-    xxx=do.call(rbind, xx)
-
-    full = ncol(yyy)
-    full_x = ncol(xxx)
-
-    if(full!=full_x)
-      stop(" The concurrent model requires a value of x for each value of y.
-           If the number of dimension is diffent, then use another model.
-           For instance the mean_fun model is available.")
-
-
-    coeff=vapply(1:full, function(i)
-      lm(formula = yyy[,i] ~  xxx[,i ])$coefficients,numeric(2))
-
-    return(list(coeff=coeff))
+  to_array3 <- function(x) {
+    N <- length(x); P <- length(x[[1]]); TT <- length(x[[1]][[1]])
+    arr <- array(NA_real_, dim = c(N, P, TT))
+    for (i in seq_len(N)) for (p in seq_len(P)) {
+      arr[i, p, ] <- as.numeric(unlist(x[[i]][[p]], recursive = TRUE, use.names = FALSE))
+    }
+    arr
   }
 
-  # Prediction function
-  predict.fun = function(out,newx,t) {
-
-    #Redefine structure
-
-    new_xx=lapply(newx, rapply, f = c)
-    new_xxx=do.call(rbind, new_xx)
-    temp=out$coeff
-
-
-    l=length(newx)
-    ya=temp[1,]
-    yaa=t(matrix(replicate(l,ya),nrow=length(ya)))
-    sol=new_xxx*temp[2,]+yaa
-
-
-    list_sol=lapply(seq_len(nrow(sol)), function(i) list(sol[i,]))
-
-    return(list_sol)
+  # y is N x 1 x T -> return N x T matrix
+  y_to_mat <- function(y) {
+    N <- length(y); stopifnot(length(y[[1]]) == 1L)
+    TT <- length(y[[1]][[1]])
+    mat <- matrix(NA_real_, nrow = N, ncol = TT)
+    for (i in seq_len(N)) {
+      mat[i, ] <- as.numeric(unlist(y[[i]][[1]], recursive = TRUE, use.names = FALSE))
+    }
+    mat
   }
 
-  return(list(train.fun=train.fun, predict.fun=predict.fun))
+  train.fun <- function(x, t, y) {
+    X  <- to_array3(x)   # N x P x T
+    Y  <- y_to_mat(y)    # N x T
+
+    if (dim(X)[1] != nrow(Y)) stop("N in x and y differ.")
+    if (dim(X)[3] != ncol(Y)) stop("T in x and y differ.")
+
+    N <- dim(X)[1]; P <- dim(X)[2]; TT <- dim(X)[3]
+    beta <- matrix(NA_real_, nrow = P, ncol = TT)
+
+    for (j in seq_len(TT)) {
+      Xj <- X[, , j, drop = FALSE][, , 1]  # N x P
+      yj <- Y[, j]
+      fit <- stats::lm.fit(x = Xj, y = yj) # no implicit intercept; include it in x if desired
+      bj <- rep(NA_real_, P); bj[seq_along(fit$coefficients)] <- fit$coefficients
+      beta[, j] <- bj
+    }
+
+    list(coeff = beta) # P x T
+  }
+
+  predict.fun <- function(out, newx, t) {
+    B    <- out$coeff              # P x T
+    Xnew <- to_array3(newx)        # M x P x T
+
+    if (dim(Xnew)[2] != nrow(B)) stop("P in newx and model differ.")
+    if (dim(Xnew)[3] != ncol(B)) stop("T in newx and model differ.")
+
+    M <- dim(Xnew)[1]; TT <- dim(Xnew)[3]
+    Yhat <- matrix(NA_real_, nrow = M, ncol = TT)
+
+    for (j in seq_len(TT)) {
+      Yhat[, j] <- as.numeric(Xnew[, , j, drop = FALSE][, , 1] %*% B[, j])
+    }
+
+    to_return = lapply(seq_len(M), function(i) as.list(Yhat[i, ]))
+    # list(list(unlist(to_return[[1]])))
+    to_return
+  }
+
+  list(train.fun = train.fun, predict.fun = predict.fun)
 }
 
 
@@ -95,12 +115,10 @@ fit_conformal_inference = function(data, significance_level, fit_method) {
     stop("Invalid fit method: ", fit_method)
   }
 
-  time_grid = replicate(30, data[["time_grid"]], simplify = FALSE)
+  time_grid = replicate(n_samples, data[["time_grid"]], simplify = FALSE)
 
-  # Extract only the second dimension (of the covariate dimension) of the x and new_x
-  # lists (the first dimension corresponds to the intercept)
-  x = lapply(data[["x"]], "[", 2)
-  x0 = lapply(data[["new_x"]], "[", 2)
+  x = data[["x"]]
+  x0 = data[["new_x"]]
 
   result = conformalInference.fd::conformal.fun.split(
     x=x,

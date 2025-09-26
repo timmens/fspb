@@ -19,8 +19,13 @@ class ConcurrentLinearModel:
     def fit(self, x: NDArray[np.floating], y: NDArray[np.floating]) -> None:
         """Fit the model coefficients.
 
+        Important:
+        ----------
+        This method does not automatically fit an intercept. If an intercept is needed,
+        add a column of ones to the features.
+
         Args:
-            x: Has shape (n_samples, 2, n_time_points)
+            x: Has shape (n_samples, n_features, n_time_points)
             y: Has shape (n_samples, n_time_points)
 
         """
@@ -39,11 +44,11 @@ class ConcurrentLinearModel:
         """Predict the outcome for new data.
 
         Args:
-            x_new: Has shape (n_samples, 2, n_time_points) or (2, n_time_points).
+            x_new: Has shape (n_samples, n_features, n_time_points) or (n_features, n_time_points).
 
         Returns:
             Predicted outcome for new data. Has shape (n_samples, n_time_points) if
-            x_new has shape (n_samples, 2, n_time_points). Otherwise, has shape
+            x_new has shape (n_samples, n_features, n_time_points). Otherwise, has shape
             (n_time_points,).
 
         """
@@ -65,7 +70,7 @@ class ConcurrentLinearModel:
     @property
     def is_fitted(self) -> bool:
         """Check if the model is fitted."""
-        return not (np.isnan(self.coefs).all() or not self.x_shape)
+        return not (np.isnan(self.coefs).any() or not self.x_shape)
 
 
 def _fit(
@@ -76,7 +81,7 @@ def _fit(
 
     Args:
         y: Has shape (n_samples, n_time_points)
-        x: Has shape (n_samples, 2, n_time_points)
+        x: Has shape (n_samples, n_features, n_time_points)
 
     Returns:
         Coefficients of shape (n_features, n_time_points)

@@ -127,7 +127,7 @@ for scenario in scenarios:
         functions_script_path: Path = SRC / "R" / "functions.R",
         simulation_data_path: Path = simulation_data_path,
         significance_level: float = band_options.significance_level,
-        fit_method: str = str(CIPredictionMethod.LINEAR),
+        fit_method: str = str(CIPredictionMethod.MEAN),
         results_path: Annotated[Path, Product] = conformal_inference_results_path,
     ) -> None:
         pass

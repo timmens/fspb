@@ -21,36 +21,39 @@ def test_fit(linear_data):
     model = ConcurrentLinearModel()
     model.fit(x, y)
     assert model.x_shape == x.shape
-    assert np.allclose(model.intercept, 3, atol=0.01)
-    assert np.allclose(model.slope, 2, atol=0.01)
+    assert np.allclose(model.coefs[0], 3, atol=0.01)
+    assert np.allclose(model.coefs[1], 2, atol=0.01)
     assert model.is_fitted
 
 
 def test_is_fitted():
     assert not ConcurrentLinearModel().is_fitted
     assert ConcurrentLinearModel(
-        intercept=np.zeros(1),
-        slope=np.zeros(1),
+        coefs=np.zeros((2, 1)),
         x_shape=(0, 2, 1),
     ).is_fitted
     assert not ConcurrentLinearModel(
-        intercept=np.zeros(1),
-        slope=np.zeros(1),
+        coefs=np.zeros((2, 1)),
         x_shape=tuple(),
     ).is_fitted
     assert not ConcurrentLinearModel(
-        intercept=np.zeros(1), slope=np.array([np.nan]), x_shape=(1, 2)
+        coefs=np.array([0, np.nan]), x_shape=(1, 2)
     ).is_fitted
     assert not ConcurrentLinearModel(
-        intercept=np.array([np.nan]), slope=np.ones(2), x_shape=(1, 2)
+        coefs=np.array([np.nan, 1]), x_shape=(1, 2)
     ).is_fitted
 
 
 def test_predict_2d():
     time_grid = np.linspace(0, 1, 3)
     model = ConcurrentLinearModel(
-        intercept=np.zeros_like(time_grid),
-        slope=np.arange(len(time_grid), dtype=np.float64),
+        coefs=np.stack(
+            [
+                np.zeros_like(time_grid),
+                np.arange(len(time_grid), dtype=np.float64),
+            ],
+            axis=1,
+        ).T,
         x_shape=(0, 2, len(time_grid)),
     )
 
@@ -63,8 +66,13 @@ def test_predict_2d():
 def test_predict_3d():
     time_grid = np.linspace(0, 1, 3)
     model = ConcurrentLinearModel(
-        intercept=np.zeros_like(time_grid),
-        slope=np.arange(len(time_grid), dtype=np.float64),
+        coefs=np.stack(
+            [
+                np.zeros_like(time_grid),
+                np.arange(len(time_grid), dtype=np.float64),
+            ],
+            axis=1,
+        ).T,
         x_shape=(0, 2, len(time_grid)),
     )
 

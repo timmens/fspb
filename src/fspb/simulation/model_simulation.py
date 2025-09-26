@@ -47,10 +47,11 @@ def simulate_from_model(
     )
 
     intercept = 0.5 * np.exp(-2 * time_grid)
+    slope = _slope_function(time_grid)
+    coefs = np.stack([intercept, slope], axis=1).T
 
     model = ConcurrentLinearModel(
-        intercept=intercept,
-        slope=_slope_function(time_grid),
+        coefs=coefs,
         x_shape=(n_samples, 2, len(time_grid)),
     )
 
@@ -108,24 +109,29 @@ def _simulate_predictor(
         The predictor grid. Has shape (n_samples, 2, n_points).
 
     """
-    binary_covariate = _simulate_binary_covariate(n_samples=n_samples, rng=rng)
-    scaling = rng.uniform(0.75, 1.25, size=n_samples)
-    x = _predictor_function(
-        time_grid=time_grid, binary_covariate=binary_covariate, scaling=scaling
-    )
+    shift = _simulate_vertical_shift(n_samples=n_samples, rng=rng)
+    scaling = _simulate_scaling(n_samples=n_samples, rng=rng)
+    x = _predictor_function(time_grid=time_grid, shift=shift, scaling=scaling)
     ones = np.ones_like(x)
     return np.stack([ones, x], axis=1)
 
 
-def _simulate_binary_covariate(
+def _simulate_scaling(n_samples: int, rng: np.random.Generator) -> NDArray[np.floating]:
+    """This corresponds to S_i in the paper."""
+    return rng.uniform(0.75, 1.25, size=n_samples)
+
+
+def _simulate_vertical_shift(
     n_samples: int, rng: np.random.Generator
 ) -> NDArray[np.int_]:
-    return rng.binomial(1, 0.5, size=n_samples)
+    """This corresponds to B_i in the paper."""
+    boolean_variate = rng.binomial(1, 0.5, size=n_samples).astype(bool)
+    return np.where(boolean_variate, 1, -1)
 
 
 def _predictor_function(
     time_grid: NDArray[np.floating],
-    binary_covariate: NDArray[np.int_],
+    shift: NDArray[np.int_],
     scaling: NDArray[np.floating],
 ) -> NDArray[np.floating]:
     """Compute the predictor variable, given the binary covariate B.
@@ -133,17 +139,14 @@ def _predictor_function(
     Args:
         time_grid: The time grid to compute the predictor variable for. Has shape
           (n_points,).
-        binary_covariate: The binary covariates. Has shape (n_samples,).
+        shift: The vertical shifts. Has shape (n_samples,).
+        scaling: The scaling factors. Has shape (n_samples,).
 
     Returns:
         The predictor variables. Has shape (n_samples, n_points).
 
     """
-    curve = scaling.reshape(-1, 1) * np.cos(2 * np.pi * time_grid)
-    upper = curve + 2 / 3
-    lower = curve - 2 / 3
-    binary_covariate_boolean_reshaped = binary_covariate.astype(bool).reshape(-1, 1)
-    return np.where(binary_covariate_boolean_reshaped, upper, lower)
+    return shift.reshape(-1, 1) + scaling.reshape(-1, 1) * np.cos(2 * np.pi * time_grid)
 
 
 # ======================================================================================

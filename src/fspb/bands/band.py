@@ -17,6 +17,9 @@ class Band:
     estimate: NDArray[np.floating]
     lower: NDArray[np.floating]
     upper: NDArray[np.floating]
+    critical_values: NDArray[np.floating] | None = None
+    roughness: NDArray[np.floating] | None = None
+    covariance: NDArray[np.floating] | None = None
 
     def __post_init__(self) -> None:
         if _is_invalid(self.lower, self.upper):
@@ -101,7 +104,8 @@ class Band:
             cov=covariance,
             time_grid=time_grid,
         )
-        sd_diag = np.sqrt(np.diag(covariance))
+
+        covariance_diag = np.diag(covariance)
 
         critical_values = solve_for_critical_values(
             significance_level=significance_level,
@@ -110,16 +114,16 @@ class Band:
             distribution_type=distribution_type,
             degrees_of_freedom=dof_hat,
             time_grid=time_grid,
-            sd_diag=sd_diag,
+            covariance_diag=covariance_diag,
             n_samples=len(y),
             band_type=band_type,
             estimation_method=method,
         )
 
         if band_type == BandType.CONFIDENCE:
-            scaling = critical_values / np.sqrt(len(y))
+            scaling = 1.0 / np.sqrt(len(y))
         elif band_type == BandType.PREDICTION:
-            scaling = critical_values
+            scaling = 1.0
         else:
             raise ValueError(f"Unknown band type: {band_type}")
 
@@ -127,8 +131,11 @@ class Band:
 
         return Band(
             estimate=y_pred,
-            lower=y_pred - scaling * sd_diag,
-            upper=y_pred + scaling * sd_diag,
+            lower=y_pred - scaling * critical_values * np.sqrt(covariance_diag),
+            upper=y_pred + scaling * critical_values * np.sqrt(covariance_diag),
+            critical_values=critical_values,
+            roughness=roughness,
+            covariance=covariance,
         )
 
 
