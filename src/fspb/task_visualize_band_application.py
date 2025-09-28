@@ -218,7 +218,7 @@ def visualize_bands(
     fig.legend(
         handles,
         [
-            "Min-width",
+            "Min.-Width",
             "Conformal inference",
             r"$Y_{\textsf{amputee}}(t)$",
             r"$Y_{\textsf{nearest-neighbor}}(t)$",
@@ -255,6 +255,7 @@ def _visualize_bands(
         "pink": "#f1a2a9",
         "green": "#6a9f58",
         "yellow": "#e7ca60",
+        "brown": "#967662",
     }
 
     # order in which these plots are drawn matters, since otherwise the order of the
@@ -263,7 +264,7 @@ def _visualize_bands(
         time_grid,
         min_width_band.lower,
         min_width_band.upper,
-        label="Min-Width",
+        label="Min.-Width",
         alpha=0.6,
         color=tableau["blue"],
         zorder=2,
@@ -290,7 +291,7 @@ def _visualize_bands(
         time_grid,
         nearest_neighbor_y,
         label="NN",
-        color=tableau["pink"],
+        color=tableau["brown"],
         linewidth=2,
         zorder=3,
         alpha=0.9,

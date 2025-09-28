@@ -141,7 +141,7 @@ class Algorithm(ABC):
             + self._scaling_gradient(x) * self.roughness_integrals[interval_index]
         )
 
-    # Min-width solution
+    # Min.-Width solution
     # ==================================================================================
     def min_width_solve(
         self,

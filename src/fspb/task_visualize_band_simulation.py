@@ -267,7 +267,7 @@ def visualize_bands(
     fig.legend(
         handles,
         [
-            "Min-width",
+            "Min.-Width",
             "Conformal inference",
             r"$Y_{\textsf{new}}(t)$",
             r"$X_{\textsf{new}}(t)^{\mathsf{T}} \hat{\beta}(t)$",
@@ -302,6 +302,7 @@ def _visualize_bands(
         "pink": "#f1a2a9",
         "green": "#6a9f58",
         "yellow": "#e7ca60",
+        "brown": "#967662",
     }
 
     # order in which these plots are drawn matters, since otherwise the order of the
