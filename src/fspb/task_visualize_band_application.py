@@ -291,7 +291,7 @@ def _visualize_bands(
         time_grid,
         nearest_neighbor_y,
         label="NN",
-        color=tableau["brown"],
+        color=tableau["orange"],
         linewidth=2,
         zorder=3,
         alpha=0.9,
