@@ -105,13 +105,22 @@ def produce_confidence_publication_table(consolidated: pd.DataFrame) -> pd.DataF
     return result
 
 
-template_start = r"""
+template_start_min_width_vs_fair = r"""
 \begin{tabular}{rrcccccc}
 \toprule
  &  & \multicolumn{2}{c}{Coverage} & \multicolumn{2}{c}{Maximum Width} & \multicolumn{2}{c}{Band Score} \\
 $n$ & $\nu$ & Min.-Width & Fair & Min.-Width & Fair & Min.-Width & Fair \\
 \midrule
 """
+
+template_start_min_width_vs_ci = r"""
+\begin{tabular}{rrcccccc}
+\toprule
+ &  & \multicolumn{2}{c}{Coverage} & \multicolumn{2}{c}{Maximum Width} & \multicolumn{2}{c}{Band Score} \\
+$n$ & $\nu$ & Min.-Width & Conf. Inf. & Min.-Width & Conf. Inf. & Min.-Width & Conf. Inf. \\
+\midrule
+"""
+
 template_end = r"""
 \bottomrule
 \end{tabular}
@@ -128,7 +137,8 @@ def fill_template(df: pd.DataFrame, type: str) -> str:
             ("Band Score", "Min.-Width"),
             ("Band Score", "Fair"),
         ]
-    else:
+        template_start = template_start_min_width_vs_fair
+    elif type == "prediction":
         col_order = [
             ("Coverage", "Min.-Width"),
             ("Coverage", "Conf. Inf."),
@@ -137,6 +147,10 @@ def fill_template(df: pd.DataFrame, type: str) -> str:
             ("Band Score", "Min.-Width"),
             ("Band Score", "Conf. Inf."),
         ]
+        template_start = template_start_min_width_vs_ci
+    else:
+        raise ValueError(f"Unknown type: {type}")
+
     rows = []
     for n, sub in df.groupby(level=0):
         first = True
