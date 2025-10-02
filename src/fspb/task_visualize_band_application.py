@@ -218,20 +218,21 @@ def visualize_bands(
         handles,
         [
             "Min.-Width",
-            "Conformal inference",
+            "Conf. Inf.",
             r"$Y_{\textsf{amputee}}(t)$",
             r"$Y_{\textsf{nearest-neighbor}}(t)$",
             r"$X_{\textsf{amputee}}(t)^{\mathsf{T}} \hat{\beta}(t)$",
         ],
         ncol=3,
         loc="lower center",
-        bbox_to_anchor=(0.52, -0.04),
+        bbox_to_anchor=(0.52, -0.2),
         fontsize=FIG_FONT_SIZE,
     )
 
     # fig.text(0, 0.48, r"$Y(t)$", fontsize=FIG_FONT_SIZE, rotation=0)
     fig.tight_layout(rect=(0.01, 0.03, 1, 1))
-    fig.set_size_inches(PAPER_TEXT_WIDTH, PAPER_TEXT_WIDTH * 0.75)
+    figsize = (0.7 * PAPER_TEXT_WIDTH, 0.7 * 0.6 * PAPER_TEXT_WIDTH)
+    fig.set_size_inches(*figsize)
     return fig
 
 

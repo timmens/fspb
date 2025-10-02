@@ -36,7 +36,7 @@ def _create_outcome_figures(
     plt.rc("text", usetex=True)
     plt.rc("font", family="serif", serif=["Computer Modern Roman"])
 
-    figsize = (PAPER_TEXT_WIDTH, 0.6 * PAPER_TEXT_WIDTH)
+    figsize = (0.7 * PAPER_TEXT_WIDTH, 0.7 * 0.6 * PAPER_TEXT_WIDTH)
 
     fig, ax = plt.subplots(
         nrows=1,
@@ -58,7 +58,7 @@ def _create_outcome_figures(
         time_grid,
         y_pred.T,
         color="#E15759",  # tableau red
-        linewidth=2.5,
+        linewidth=2,
         alpha=0.8,
     )
 

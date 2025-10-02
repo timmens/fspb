@@ -253,7 +253,7 @@ def visualize_bands(
         ax.tick_params(labelsize=FIG_FONT_SIZE)
         ax.grid(visible=True, linestyle="--", alpha=0.7)
         ax.set_xlim(0, 1)
-        ax.set_ylim(-2.9, 3.9)
+        ax.set_ylim(-2.5, 2.5)
         ax.set_xticks([0, 1 / 3, 2 / 3, 1])
         ax.set_xticklabels(["$0$", "$1/3$", "$2/3$", "$1$"])
         ax.set_yticks([-2, 0, 2])
@@ -267,19 +267,19 @@ def visualize_bands(
         handles,
         [
             "Min.-Width",
-            "Conformal inference",
+            "Conf. Inf.",
             r"$Y_{\textsf{new}}(t)$",
             r"$X_{\textsf{new}}(t)^{\mathsf{T}} \hat{\beta}(t)$",
         ],
         ncol=4,
         loc="lower center",
-        bbox_to_anchor=(0.52, -0.04),
+        bbox_to_anchor=(0.52, -0.15),
         fontsize=FIG_FONT_SIZE,
     )
 
     # fig.text(0, 0.48, r"$Y(t)$", fontsize=FIG_FONT_SIZE, rotation=0)
     fig.tight_layout(rect=(0.01, 0.03, 1, 1))
-    fig.set_size_inches(PAPER_TEXT_WIDTH, 3)
+    fig.set_size_inches(PAPER_TEXT_WIDTH, 2)
     return fig
 
 
