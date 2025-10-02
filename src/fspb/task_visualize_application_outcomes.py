@@ -6,11 +6,10 @@ import pandas as pd
 import numpy as np
 from numpy.typing import NDArray
 
-from fspb.config import BLD_APPLICATION
+from fspb.config import BLD_APPLICATION, PAPER_TEXT_WIDTH
 from fspb.simulation.model_simulation import generate_time_grid
 from pytask import Product
 
-PAPER_TEXT_WIDTH = 8.5 - 2  # us-letter width in inches minus margin
 FIG_FONT_SIZE = 11
 
 

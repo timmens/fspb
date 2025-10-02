@@ -19,7 +19,7 @@ from fspb.simulation.simulation_study import (
     SingleSimulationResult,
     SimulationResult,
 )
-from fspb.config import SRC, BLD_FIGURES, SKIP_R, LENGTH_SCALE
+from fspb.config import SRC, BLD_FIGURES, SKIP_R, LENGTH_SCALE, PAPER_TEXT_WIDTH
 
 import matplotlib.pyplot as plt
 from fspb.bands.band import Band
@@ -209,7 +209,6 @@ def visualize_bands(
     conformal_inference_sim_result: dict[str, SingleSimulationResult],
 ) -> plt.Figure:
     """Visualize the bands for the stationary and non-stationary cases."""
-    PAPER_TEXT_WIDTH = 8.5 - 2  # us-letter width in inches minus margin
     FIG_FONT_SIZE = 11
 
     plt.style.use("seaborn-v0_8-whitegrid")

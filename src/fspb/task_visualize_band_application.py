@@ -11,7 +11,7 @@ from fspb.types import (
     DistributionType,
     EstimationMethod,
 )
-from fspb.config import SRC, SKIP_R, BLD_APPLICATION
+from fspb.config import SRC, SKIP_R, BLD_APPLICATION, PAPER_TEXT_WIDTH
 
 import matplotlib.pyplot as plt
 from fspb.bands.band import Band
@@ -174,7 +174,6 @@ def visualize_bands(
     nearest_neighbor_y: np.ndarray,
 ) -> plt.Figure:
     """Visualize the bands for the stationary and non-stationary cases."""
-    PAPER_TEXT_WIDTH = 8.5 - 2  # us-letter width in inches minus margin
     FIG_FONT_SIZE = 11
 
     plt.style.use("seaborn-v0_8-whitegrid")
