@@ -10,8 +10,9 @@ from fspb.types import (
     CIPredictionMethod,
     DistributionType,
     EstimationMethod,
+    CovarianceType,
 )
-from fspb.config import SRC, SKIP_R, BLD_APPLICATION
+from fspb.config import SRC, SKIP_R, BLD_APPLICATION, PAPER_TEXT_WIDTH
 
 import matplotlib.pyplot as plt
 from fspb.bands.band import Band
@@ -46,6 +47,7 @@ def task_fit_min_width_band(
             significance_level=SIGNFICANCE_LEVEL,
             distribution_type=DistributionType.STUDENT_T,
             method=EstimationMethod.MIN_WIDTH,
+            covariance_type=CovarianceType.NON_STATIONARY,
         )
         bands.append(band)
     pd.to_pickle(bands, result_path)
@@ -174,7 +176,6 @@ def visualize_bands(
     nearest_neighbor_y: np.ndarray,
 ) -> plt.Figure:
     """Visualize the bands for the stationary and non-stationary cases."""
-    PAPER_TEXT_WIDTH = 8.5 - 2  # us-letter width in inches minus margin
     FIG_FONT_SIZE = 11
 
     plt.style.use("seaborn-v0_8-whitegrid")
@@ -218,21 +219,22 @@ def visualize_bands(
     fig.legend(
         handles,
         [
-            "Min-width",
-            "Conformal inference",
+            "Min.-Width",
+            "Conf. Inf.",
             r"$Y_{\textsf{amputee}}(t)$",
             r"$Y_{\textsf{nearest-neighbor}}(t)$",
             r"$X_{\textsf{amputee}}(t)^{\mathsf{T}} \hat{\beta}(t)$",
         ],
         ncol=3,
         loc="lower center",
-        bbox_to_anchor=(0.52, -0.04),
+        bbox_to_anchor=(0.52, -0.2),
         fontsize=FIG_FONT_SIZE,
     )
 
     # fig.text(0, 0.48, r"$Y(t)$", fontsize=FIG_FONT_SIZE, rotation=0)
     fig.tight_layout(rect=(0.01, 0.03, 1, 1))
-    fig.set_size_inches(PAPER_TEXT_WIDTH, PAPER_TEXT_WIDTH * 0.75)
+    figsize = (0.7 * PAPER_TEXT_WIDTH, 0.7 * 0.6 * PAPER_TEXT_WIDTH)
+    fig.set_size_inches(*figsize)
     return fig
 
 
@@ -255,6 +257,7 @@ def _visualize_bands(
         "pink": "#f1a2a9",
         "green": "#6a9f58",
         "yellow": "#e7ca60",
+        "brown": "#967662",
     }
 
     # order in which these plots are drawn matters, since otherwise the order of the
@@ -263,7 +266,7 @@ def _visualize_bands(
         time_grid,
         min_width_band.lower,
         min_width_band.upper,
-        label="Min-Width",
+        label="Min.-Width",
         alpha=0.6,
         color=tableau["blue"],
         zorder=2,
@@ -290,7 +293,7 @@ def _visualize_bands(
         time_grid,
         nearest_neighbor_y,
         label="NN",
-        color=tableau["pink"],
+        color=tableau["orange"],
         linewidth=2,
         zorder=3,
         alpha=0.9,

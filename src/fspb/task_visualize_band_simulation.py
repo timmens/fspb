@@ -19,7 +19,7 @@ from fspb.simulation.simulation_study import (
     SingleSimulationResult,
     SimulationResult,
 )
-from fspb.config import SRC, BLD_FIGURES, SKIP_R, LENGTH_SCALE
+from fspb.config import SRC, BLD_FIGURES, SKIP_R, LENGTH_SCALE, PAPER_TEXT_WIDTH
 
 import matplotlib.pyplot as plt
 from fspb.bands.band import Band
@@ -209,7 +209,6 @@ def visualize_bands(
     conformal_inference_sim_result: dict[str, SingleSimulationResult],
 ) -> plt.Figure:
     """Visualize the bands for the stationary and non-stationary cases."""
-    PAPER_TEXT_WIDTH = 8.5 - 2  # us-letter width in inches minus margin
     FIG_FONT_SIZE = 11
 
     plt.style.use("seaborn-v0_8-whitegrid")
@@ -254,7 +253,7 @@ def visualize_bands(
         ax.tick_params(labelsize=FIG_FONT_SIZE)
         ax.grid(visible=True, linestyle="--", alpha=0.7)
         ax.set_xlim(0, 1)
-        ax.set_ylim(-2.9, 3.9)
+        ax.set_ylim(-2.5, 2.5)
         ax.set_xticks([0, 1 / 3, 2 / 3, 1])
         ax.set_xticklabels(["$0$", "$1/3$", "$2/3$", "$1$"])
         ax.set_yticks([-2, 0, 2])
@@ -267,20 +266,20 @@ def visualize_bands(
     fig.legend(
         handles,
         [
-            "Min-width",
-            "Conformal inference",
+            "Min.-Width",
+            "Conf. Inf.",
             r"$Y_{\textsf{new}}(t)$",
             r"$X_{\textsf{new}}(t)^{\mathsf{T}} \hat{\beta}(t)$",
         ],
         ncol=4,
         loc="lower center",
-        bbox_to_anchor=(0.52, -0.04),
+        bbox_to_anchor=(0.52, -0.15),
         fontsize=FIG_FONT_SIZE,
     )
 
     # fig.text(0, 0.48, r"$Y(t)$", fontsize=FIG_FONT_SIZE, rotation=0)
     fig.tight_layout(rect=(0.01, 0.03, 1, 1))
-    fig.set_size_inches(PAPER_TEXT_WIDTH, 3)
+    fig.set_size_inches(PAPER_TEXT_WIDTH, 2)
     return fig
 
 
@@ -302,6 +301,7 @@ def _visualize_bands(
         "pink": "#f1a2a9",
         "green": "#6a9f58",
         "yellow": "#e7ca60",
+        "brown": "#967662",
     }
 
     # order in which these plots are drawn matters, since otherwise the order of the

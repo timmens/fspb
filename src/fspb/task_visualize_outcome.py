@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from numpy.typing import NDArray
 
-from fspb.config import SRC, BLD_FIGURES, LENGTH_SCALE
+from fspb.config import SRC, BLD_FIGURES, LENGTH_SCALE, PAPER_TEXT_WIDTH
 from fspb.simulation.model_simulation import (
     CovarianceType,
     generate_default_time_grid,
@@ -13,7 +13,6 @@ from fspb.simulation.model_simulation import (
 )
 from pytask import Product
 
-PAPER_TEXT_WIDTH = 8.5 - 2  # us-letter width in inches minus margin
 FIG_FONT_SIZE = 11
 
 

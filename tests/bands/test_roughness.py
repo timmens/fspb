@@ -4,8 +4,8 @@ from numpy.testing import assert_array_almost_equal as aaae
 from fspb.bands.roughness import (
     _cov_to_corr,
     calculate_roughness_on_grid,
-    _calculate_roughness_on_grid_numerical_diff,
-    _calculate_roughness_on_grid_splines,
+    _calculate_squared_roughness_on_grid_numerical_diff,
+    _calculate_squared_roughness_on_grid_splines,
 )
 from sklearn.gaussian_process.kernels import RBF
 
@@ -33,8 +33,8 @@ def test_calculate_roughness_on_grid(length_scale, num):
 @pytest.mark.parametrize(
     "calculator",
     (
-        _calculate_roughness_on_grid_numerical_diff,
-        _calculate_roughness_on_grid_splines,
+        _calculate_squared_roughness_on_grid_numerical_diff,
+        _calculate_squared_roughness_on_grid_splines,
     ),
 )
 def test_calculate_roughness_on_grid_implementations(calculator):

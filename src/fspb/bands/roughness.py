@@ -18,31 +18,31 @@ def calculate_roughness_on_grid(
 
     """
     corr = _cov_to_corr(cov)
-    roughness_numerical = _calculate_roughness_on_grid_numerical_diff(corr, time_grid)
-    roughness_splines = _calculate_roughness_on_grid_splines(corr, time_grid)
-    return (roughness_numerical + roughness_splines) / 2
+    sq_roughness_numerical = _calculate_squared_roughness_on_grid_numerical_diff(
+        corr, time_grid
+    )
+    sq_roughness_splines = _calculate_squared_roughness_on_grid_splines(corr, time_grid)
+    sq_roughness = (sq_roughness_numerical + sq_roughness_splines) / 2
+    return np.sqrt(np.clip(sq_roughness, a_min=1e-12, a_max=None))
 
 
-def _calculate_roughness_on_grid_numerical_diff(
+def _calculate_squared_roughness_on_grid_numerical_diff(
     corr: NDArray[np.floating],
     time_grid: NDArray[np.floating],
 ) -> NDArray[np.floating]:
     dx = time_grid[1] - time_grid[0]
-
     corr_dx = np.gradient(corr, dx, axis=0)
     corr_dxdy = np.gradient(corr_dx, dx, axis=1)
+    return np.diag(corr_dxdy)
 
-    return np.sqrt(np.diag(corr_dxdy))
 
-
-def _calculate_roughness_on_grid_splines(
+def _calculate_squared_roughness_on_grid_splines(
     corr: NDArray[np.floating],
     time_grid: NDArray[np.floating],
 ) -> NDArray[np.floating]:
     spline = RectBivariateSpline(time_grid, time_grid, corr, kx=4, ky=4)
     partial_derivative = spline(time_grid, time_grid, dx=1, dy=1)
-    roughness_squared = np.diag(partial_derivative)
-    return np.sqrt(roughness_squared)
+    return np.diag(partial_derivative)
 
 
 def _cov_to_corr(cov: NDArray[np.floating]) -> NDArray[np.floating]:
