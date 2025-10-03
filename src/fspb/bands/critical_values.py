@@ -6,6 +6,7 @@ from scipy.stats import norm, t
 from scipy import integrate
 from abc import ABC, abstractmethod
 from fspb.types import DistributionType, parse_enum_type, BandType, EstimationMethod
+import scipy.optimize as sp_opt
 
 MAX_CRITICAL_VALUE = 20.0  # Maximum critical value for the band
 
@@ -40,8 +41,8 @@ def solve_for_critical_values(
     }
 
     MAX_ITER = {
-        BandType.CONFIDENCE: 25,
-        BandType.PREDICTION: 25,
+        BandType.CONFIDENCE: 100,
+        BandType.PREDICTION: 100,
     }
 
     algo: Algorithm
@@ -143,6 +144,42 @@ class Algorithm(ABC):
 
     # Min.-Width solution
     # ==================================================================================
+    def _is_feasible(
+        self, u: NDArray[np.floating], constraint: sp_opt.NonlinearConstraint
+    ) -> bool:
+        return constraint.lb <= constraint.fun(u) <= constraint.ub
+
+    def make_feasible(
+        self,
+        u0: NDArray[np.floating],
+        constraint: sp_opt.NonlinearConstraint,
+        bounds: sp_opt.Bounds,
+    ) -> NDArray[np.floating]:
+        # Define violation measure (0 if feasible, positive otherwise)
+        constraint_center = (constraint.lb + constraint.ub) / 2
+
+        def violation(x):
+            return (constraint.fun(x) - constraint_center) ** 2
+
+        def violation_gradient(x):
+            grad = constraint.jac(x)
+            return 2 * (constraint.fun(x) - constraint_center) * grad
+
+        import scipy.optimize as sp_opt
+
+        res = sp_opt.minimize(
+            violation,
+            u0,
+            jac=violation_gradient,
+            method="L-BFGS-B",
+            bounds=bounds,
+        )
+
+        if not self._is_feasible(res.x, constraint):
+            raise ValueError("Starting point cannot be made feasible.")
+
+        return res.x
+
     def min_width_solve(
         self,
         maxiter: int,
@@ -152,13 +189,14 @@ class Algorithm(ABC):
 
         import scipy.optimize as sp_opt
 
-        tol = 1e-3
+        tol = 1e-2
 
         constraint = sp_opt.NonlinearConstraint(
             fun=self._min_width_constraint,  # type: ignore[arg-type]
             jac=self._min_width_constraint_gradient,
             lb=self.significance_level / 2 - tol,
             ub=self.significance_level / 2,
+            keep_feasible=True,
         )
 
         bounds = sp_opt.Bounds(
@@ -166,16 +204,18 @@ class Algorithm(ABC):
             ub=MAX_CRITICAL_VALUE,
         )
 
+        u0_feasible = self.make_feasible(u0, constraint, bounds)
+
         method_to_options = {
             "COBYLA": {"maxiter": maxiter, "rhobeg": np.min(u0) / 500},
             "trust-constr": {"maxiter": maxiter, "initial_tr_radius": np.min(u0) / 100},
         }
 
-        method = "COBYLA"  # or "SLSQP", "trust-constr", etc.
+        method = "SLSQP"  # or "SLSQP", "trust-constr", etc.
 
         res = sp_opt.minimize(
             fun=self._min_width_objective,  # type: ignore[call-overload]
-            x0=u0,
+            x0=u0_feasible,
             jac=self._min_width_objective_gradient,
             constraints=constraint,
             method=method,

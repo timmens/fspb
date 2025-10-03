@@ -9,7 +9,7 @@ from fspb.types import DistributionType, EstimationMethod
 from fspb.bands.critical_values import solve_for_critical_values
 from fspb.bands.covariance import calculate_covariance
 from fspb.bands.dof import estimate_dof
-from fspb.config import BandType, Scenario
+from fspb.config import BandType, Scenario, CovarianceType
 
 
 @dataclass
@@ -84,6 +84,7 @@ class Band:
         significance_level: float,
         distribution_type: DistributionType,
         method: EstimationMethod,
+        covariance_type: CovarianceType,
     ) -> Band:
         """Fit a linear model and calculate the corresponding simultaneous band."""
         model = ConcurrentLinearModel()
@@ -104,6 +105,9 @@ class Band:
             cov=covariance,
             time_grid=time_grid,
         )
+
+        if covariance_type == CovarianceType.STATIONARY:
+            roughness *= 1.5
 
         covariance_diag = np.diag(covariance)
 

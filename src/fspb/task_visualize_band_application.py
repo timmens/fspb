@@ -10,6 +10,7 @@ from fspb.types import (
     CIPredictionMethod,
     DistributionType,
     EstimationMethod,
+    CovarianceType,
 )
 from fspb.config import SRC, SKIP_R, BLD_APPLICATION, PAPER_TEXT_WIDTH
 
@@ -46,6 +47,7 @@ def task_fit_min_width_band(
             significance_level=SIGNFICANCE_LEVEL,
             distribution_type=DistributionType.STUDENT_T,
             method=EstimationMethod.MIN_WIDTH,
+            covariance_type=CovarianceType.NON_STATIONARY,
         )
         bands.append(band)
     pd.to_pickle(bands, result_path)
