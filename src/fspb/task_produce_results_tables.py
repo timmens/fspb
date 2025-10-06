@@ -2,6 +2,7 @@ from fspb.config import BLD_TABLES, BLD_SIMULATION_PROCESSED, SRC
 from fspb.simulation.results_tables import (
     produce_confidence_publication_table,
     produce_prediction_publication_table,
+    fill_template,
 )
 from pathlib import Path
 from typing import Annotated
@@ -27,13 +28,8 @@ for covariance_type in ("stationary", "non_stationary"):
             .query("method in ('min_width', 'ci')")
         )
         table = produce_prediction_publication_table(prediction_results)
-        table.to_latex(
-            product_path,
-            escape=False,
-            multicolumn=True,
-            multicolumn_format="c",
-            column_format="rr" + "c" * len(table.columns),
-        )
+        latex_str = fill_template(table, type="prediction")
+        product_path.write_text(latex_str)
 
     @pytask.task(id=covariance_type)
     def task_produce_prediction_table_min_width_vs_fair(
@@ -50,13 +46,8 @@ for covariance_type in ("stationary", "non_stationary"):
             .query("method in ('min_width', 'fair')")
         )
         table = produce_prediction_publication_table(prediction_results)
-        table.to_latex(
-            product_path,
-            escape=False,
-            multicolumn=True,
-            multicolumn_format="c",
-            column_format="rr" + "c" * len(table.columns),
-        )
+        latex_str = fill_template(table, type="confidence")
+        product_path.write_text(latex_str)
 
     @pytask.task(id=covariance_type)
     def task_produce_confidence_table(
@@ -71,10 +62,5 @@ for covariance_type in ("stationary", "non_stationary"):
             covariance_type, level="covariance_type"
         )
         table = produce_confidence_publication_table(confidence_results)  # type: ignore[arg-type]
-        table.to_latex(
-            product_path,
-            escape=False,
-            multicolumn=True,
-            multicolumn_format="c",
-            column_format="rr" + "c" * len(table.columns),
-        )
+        latex_str = fill_template(table, type="confidence")
+        product_path.write_text(latex_str)

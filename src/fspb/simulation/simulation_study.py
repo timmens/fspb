@@ -184,6 +184,7 @@ def _single_simulation(
         significance_level=band_options.significance_level,
         distribution_type=band_options.distribution_type,
         method=estimation_method,
+        covariance_type=simulation_options.covariance_type,
     )
 
     return SingleSimulationResult(

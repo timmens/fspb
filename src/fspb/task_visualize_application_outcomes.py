@@ -6,11 +6,10 @@ import pandas as pd
 import numpy as np
 from numpy.typing import NDArray
 
-from fspb.config import BLD_APPLICATION
+from fspb.config import BLD_APPLICATION, PAPER_TEXT_WIDTH
 from fspb.simulation.model_simulation import generate_time_grid
 from pytask import Product
 
-PAPER_TEXT_WIDTH = 8.5 - 2  # us-letter width in inches minus margin
 FIG_FONT_SIZE = 11
 
 
@@ -37,7 +36,7 @@ def _create_outcome_figures(
     plt.rc("text", usetex=True)
     plt.rc("font", family="serif", serif=["Computer Modern Roman"])
 
-    figsize = (PAPER_TEXT_WIDTH, 0.6 * PAPER_TEXT_WIDTH)
+    figsize = (0.7 * PAPER_TEXT_WIDTH, 0.7 * 0.6 * PAPER_TEXT_WIDTH)
 
     fig, ax = plt.subplots(
         nrows=1,
@@ -59,7 +58,7 @@ def _create_outcome_figures(
         time_grid,
         y_pred.T,
         color="#E15759",  # tableau red
-        linewidth=2.5,
+        linewidth=2,
         alpha=0.8,
     )
 

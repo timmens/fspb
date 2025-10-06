@@ -106,3 +106,4 @@ CONFIDENCE_SCENARIOS = Scenario.from_lists(
     covariance_type=[CovarianceType.STATIONARY, CovarianceType.NON_STATIONARY],
     band_type=[BandType.CONFIDENCE],
 )
+PAPER_TEXT_WIDTH = 6  # JMLR text width in inches
