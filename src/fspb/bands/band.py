@@ -106,9 +106,6 @@ class Band:
             time_grid=time_grid,
         )
 
-        if covariance_type == CovarianceType.STATIONARY:
-            roughness *= 1.5
-
         covariance_diag = np.diag(covariance)
 
         critical_values = solve_for_critical_values(

@@ -211,7 +211,7 @@ class Algorithm(ABC):
             "trust-constr": {"maxiter": maxiter, "initial_tr_radius": np.min(u0) / 100},
         }
 
-        method = "SLSQP"  # or "SLSQP", "trust-constr", etc.
+        method = "trust-constr"  # or "SLSQP", "trust-constr", etc.
 
         res = sp_opt.minimize(
             fun=self._min_width_objective,  # type: ignore[call-overload]
@@ -222,6 +222,9 @@ class Algorithm(ABC):
             options=method_to_options.get(method, None),
             bounds=bounds,
         )
+        if not self._is_feasible(res.x, constraint):
+            raise ValueError("Solution point is not feasible.")
+
         return res.x
 
     def _min_width_objective(self, u: NDArray[np.floating]) -> float:
