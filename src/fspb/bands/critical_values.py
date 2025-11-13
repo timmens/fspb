@@ -41,8 +41,8 @@ def solve_for_critical_values(
     }
 
     MAX_ITER = {
-        BandType.CONFIDENCE: 100,
-        BandType.PREDICTION: 100,
+        BandType.CONFIDENCE: 10,
+        BandType.PREDICTION: 10,
     }
 
     algo: Algorithm

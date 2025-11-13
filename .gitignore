@@ -20,6 +20,7 @@ __pycache__/
 .vscode/
 
 # R
+renv/
 .RData
 .Rhistory
 .Rproj.user

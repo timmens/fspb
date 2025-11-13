@@ -36,6 +36,8 @@ def produce_prediction_publication_table(
         cats = ["min_width", "ci"]
     elif methods == {"min_width", "fair"}:
         cats = ["min_width", "fair"]
+    elif methods == {"fair", "ci"}:
+        cats = ["fair", "ci"]
     else:
         raise ValueError(f"Unexpected methods in result: {methods}")
 
@@ -145,6 +147,16 @@ def fill_template(df: pd.DataFrame, type: str) -> str:
             ("Maximum Width", "Min.-Width"),
             ("Maximum Width", "Conf. Inf."),
             ("Band Score", "Min.-Width"),
+            ("Band Score", "Conf. Inf."),
+        ]
+        template_start = template_start_min_width_vs_ci
+    elif type == "prediction_fair":
+        col_order = [
+            ("Coverage", "Fair"),
+            ("Coverage", "Conf. Inf."),
+            ("Maximum Width", "Fair"),
+            ("Maximum Width", "Conf. Inf."),
+            ("Band Score", "Fair"),
             ("Band Score", "Conf. Inf."),
         ]
         template_start = template_start_min_width_vs_ci

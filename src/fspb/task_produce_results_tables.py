@@ -32,6 +32,24 @@ for covariance_type in ("stationary", "non_stationary"):
         product_path.write_text(latex_str)
 
     @pytask.task(id=covariance_type)
+    def task_produce_prediction_table_fair_vs_ci(
+        _script: Path = SRC / "simulation" / "results_tables.py",
+        consolidated_path: Path = BLD_SIMULATION_PROCESSED / "consolidated.pkl",
+        product_path: Annotated[Path, Product] = BLD_TABLES
+        / f"prediction_{covariance_type}_fair.tex",
+        covariance_type: str = covariance_type,
+    ) -> None:
+        consolidated: pd.DataFrame = pd.read_pickle(consolidated_path)
+        prediction_results = (
+            consolidated.xs("prediction", level="band_type")
+            .xs(covariance_type, level="covariance_type")
+            .query("method in ('fair', 'ci')")
+        )
+        table = produce_prediction_publication_table(prediction_results)
+        latex_str = fill_template(table, type="prediction_fair")
+        product_path.write_text(latex_str)
+
+    @pytask.task(id=covariance_type)
     def task_produce_prediction_table_min_width_vs_fair(
         _script: Path = SRC / "simulation" / "results_tables.py",
         consolidated_path: Path = BLD_SIMULATION_PROCESSED / "consolidated.pkl",
