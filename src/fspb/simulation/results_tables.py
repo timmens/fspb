@@ -32,10 +32,8 @@ def produce_prediction_publication_table(
 
     result = result.reset_index()
     methods = set(result["method"].values)
-    if methods == {"min_width", "ci"}:
-        cats = ["min_width", "ci"]
-    elif methods == {"min_width", "fair"}:
-        cats = ["min_width", "fair"]
+    if methods == {"fair", "ci"}:
+        cats = ["fair", "ci"]
     else:
         raise ValueError(f"Unexpected methods in result: {methods}")
 
@@ -46,7 +44,6 @@ def produce_prediction_publication_table(
             {
                 "fair": "Fair",
                 "ci": "Conf. Inf.",
-                "min_width": "Min.-Width",
             }
         )
     )
@@ -72,11 +69,11 @@ def produce_confidence_publication_table(consolidated: pd.DataFrame) -> pd.DataF
 
     result = pd.DataFrame(combined).reset_index()
 
-    # Ordered methods and final labels
+    # Only Fair method for confidence bands
     result["method"] = (
         result["method"]
-        .astype(pd.CategoricalDtype(["min_width", "fair"], ordered=True))
-        .cat.rename_categories({"fair": "Fair", "min_width": "Min.-Width"})
+        .astype(pd.CategoricalDtype(["fair"], ordered=True))
+        .cat.rename_categories({"fair": "Fair"})
     )
 
     # Rename variables to publication-friendly labels
@@ -105,19 +102,19 @@ def produce_confidence_publication_table(consolidated: pd.DataFrame) -> pd.DataF
     return result
 
 
-template_start_min_width_vs_fair = r"""
-\begin{tabular}{rrcccccc}
+template_start_fair = r"""
+\begin{tabular}{rrccc}
 \toprule
- &  & \multicolumn{2}{c}{Coverage} & \multicolumn{2}{c}{Maximum Width} & \multicolumn{2}{c}{Band Score} \\
-$n$ & $\nu$ & Min.-Width & Fair & Min.-Width & Fair & Min.-Width & Fair \\
+ &  & Coverage & Maximum Width & Band Score \\
+$n$ & $\nu$ & Fair & Fair & Fair \\
 \midrule
 """
 
-template_start_min_width_vs_ci = r"""
+template_start_fair_vs_ci = r"""
 \begin{tabular}{rrcccccc}
 \toprule
  &  & \multicolumn{2}{c}{Coverage} & \multicolumn{2}{c}{Maximum Width} & \multicolumn{2}{c}{Band Score} \\
-$n$ & $\nu$ & Min.-Width & Conf. Inf. & Min.-Width & Conf. Inf. & Min.-Width & Conf. Inf. \\
+$n$ & $\nu$ & Fair & Conf. Inf. & Fair & Conf. Inf. & Fair & Conf. Inf. \\
 \midrule
 """
 
@@ -130,24 +127,21 @@ template_end = r"""
 def fill_template(df: pd.DataFrame, type: str) -> str:
     if type == "confidence":
         col_order = [
-            ("Coverage", "Min.-Width"),
             ("Coverage", "Fair"),
-            ("Maximum Width", "Min.-Width"),
             ("Maximum Width", "Fair"),
-            ("Band Score", "Min.-Width"),
             ("Band Score", "Fair"),
         ]
-        template_start = template_start_min_width_vs_fair
+        template_start = template_start_fair
     elif type == "prediction":
         col_order = [
-            ("Coverage", "Min.-Width"),
+            ("Coverage", "Fair"),
             ("Coverage", "Conf. Inf."),
-            ("Maximum Width", "Min.-Width"),
+            ("Maximum Width", "Fair"),
             ("Maximum Width", "Conf. Inf."),
-            ("Band Score", "Min.-Width"),
+            ("Band Score", "Fair"),
             ("Band Score", "Conf. Inf."),
         ]
-        template_start = template_start_min_width_vs_ci
+        template_start = template_start_fair_vs_ci
     else:
         raise ValueError(f"Unknown type: {type}")
 

@@ -35,20 +35,11 @@ if MOVE_RESULTS_TO_PAPER_DIR:
     for covariance_type in ("stationary", "non_stationary"):
 
         @pytask.task(id=covariance_type)
-        def task_move_prediction_simulation_results_table_min_width_vs_ci(
+        def task_move_prediction_simulation_results_table_fair_vs_ci(
             simulation_results_table_path: Path = BLD_TABLES
             / f"prediction_{covariance_type}.tex",
             to_path: Annotated[Path, Product] = PAPER_BLD
             / f"prediction_{covariance_type}.tex",
-        ) -> None:
-            shutil.copy(simulation_results_table_path, to_path)
-
-        @pytask.task(id=covariance_type)
-        def task_move_prediction_simulation_results_table_min_width_vs_fair(
-            simulation_results_table_path: Path = BLD_TABLES
-            / f"prediction_{covariance_type}_min_width_vs_fair.tex",
-            to_path: Annotated[Path, Product] = PAPER_BLD
-            / f"prediction_{covariance_type}_min_width_vs_fair.tex",
         ) -> None:
             shutil.copy(simulation_results_table_path, to_path)
 

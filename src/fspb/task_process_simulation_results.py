@@ -28,7 +28,8 @@ OUR_RESULTS_PATHS = {
     for method in EstimationMethod
 }
 
-for method in [EstimationMethod.FAIR, EstimationMethod.MIN_WIDTH]:
+# Only process FAIR method results
+for method in [EstimationMethod.FAIR]:
 
     @pytask.task(id=method)
     def task_process_our_simulation_results(
@@ -75,8 +76,8 @@ def task_process_ci_simulation_results(
 
 def task_consolidate_simulation_results(
     results_paths: dict[str, Path] = {
-        method: BLD_SIMULATION_PROCESSED / f"{method}.pkl"
-        for method in EstimationMethod
+        "fair": BLD_SIMULATION_PROCESSED / "fair.pkl",
+        "ci": BLD_SIMULATION_PROCESSED / "ci.pkl",
     },
     consolidated_path: Annotated[Path, Product] = BLD_SIMULATION_PROCESSED
     / "consolidated.pkl",
