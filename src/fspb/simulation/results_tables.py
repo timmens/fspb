@@ -90,7 +90,7 @@ def produce_confidence_publication_table(consolidated: pd.DataFrame) -> pd.DataF
 
     # Pivot to MultiIndex columns: (Metric, Band)
     result = (
-        result.set_index(["$n$", r"$\nu$", "Method"])
+        result.set_index(["$n$", r"$\nu$", "Method"])  # type: ignore[assignment]
         .sort_index()
         .unstack(level="Method")  # -> columns like (Coverage, Fair) etc.
     )
@@ -148,9 +148,9 @@ def fill_template(df: pd.DataFrame, type: str) -> str:
     rows = []
     for n, sub in df.groupby(level=0):
         first = True
-        for (nn, nu), row in sub.iterrows():
+        for (nn, nu), row in sub.iterrows():  # type: ignore[misc]
             n_cell = f"{n}" if first else ""
             first = False
             vals = [str(row[c]) for c in col_order]
-            rows.append(" & ".join([n_cell, str(nu), *vals]) + r" \\")
+            rows.append(" & ".join([n_cell, str(nu), *vals]) + r" \\")  # type: ignore[has-type]
     return template_start + "\n".join(rows) + template_end

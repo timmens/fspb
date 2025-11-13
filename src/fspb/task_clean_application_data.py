@@ -26,7 +26,7 @@ for amputee in (False, True):
     ) -> None:
         df_x = pd.read_csv(x_data_path, delimiter=",")
         x_arr = _create_predictor_array(df_x, amputee=amputee, n_time_points=101)
-        pd.to_pickle(x_arr, produces)
+        pd.to_pickle(x_arr, produces)  # type: ignore[attr-defined]
 
 # --------------------------------------------------------------------------------------
 # Helper functions
@@ -93,7 +93,7 @@ for amputee in (False, True):
             interval=(70, 90),  # Python index, corresponds to 0.7 to 0.9 in the grid
             target_idx=80,  # Align all peaks at 0.8
         )
-        pd.to_pickle(updated, produces)
+        pd.to_pickle(updated, produces)  # type: ignore[attr-defined]
 
 
 # ======================================================================================
@@ -115,7 +115,7 @@ def task_find_and_store_nearest_neighbor_trajectories(
         x_new=x_new,
         y_train=y_train,
     )
-    pd.to_pickle(nearest_neighbors, produces)
+    pd.to_pickle(nearest_neighbors, produces)  # type: ignore[attr-defined]
 
 
 # --------------------------------------------------------------------------------------
