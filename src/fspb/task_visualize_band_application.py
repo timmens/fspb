@@ -20,7 +20,7 @@ from fspb.bands.band import Band
 SIGNFICANCE_LEVEL = 0.1
 
 
-def task_fit_min_width_band(
+def task_fit_fair_band(
     _scripts: list[Path] = [
         SRC / "bands" / "band.py",
         SRC / "bands" / "covariance.py",
@@ -29,7 +29,7 @@ def task_fit_min_width_band(
     y_train_path: Path = BLD_APPLICATION / "y_train.pickle",
     x_train_path: Path = BLD_APPLICATION / "x_train.pickle",
     x_new_path: Path = BLD_APPLICATION / "x_pred.pickle",
-    result_path: Annotated[Path, Product] = BLD_APPLICATION / "min_width_bands.pickle",
+    result_path: Annotated[Path, Product] = BLD_APPLICATION / "fair_bands.pickle",
 ) -> None:
     y_train = pd.read_pickle(y_train_path)
     x_train = pd.read_pickle(x_train_path)
@@ -46,11 +46,11 @@ def task_fit_min_width_band(
             interval_cutoffs=np.array([0, 1 / 3, 2 / 3, 1]),
             significance_level=SIGNFICANCE_LEVEL,
             distribution_type=DistributionType.STUDENT_T,
-            method=EstimationMethod.MIN_WIDTH,
+            method=EstimationMethod.FAIR,
             covariance_type=CovarianceType.NON_STATIONARY,
         )
         bands.append(band)
-    pd.to_pickle(bands, result_path)
+    pd.to_pickle(bands, result_path)  # type: ignore[attr-defined]
 
 
 # Convert application data to json
@@ -129,7 +129,7 @@ def task_process_conformal_inference_results_to_bands(
             upper=np.array(_their_result["upper"]),
         )
         bands.append(band)
-    pd.to_pickle(bands, processed_path)
+    pd.to_pickle(bands, processed_path)  # type: ignore[attr-defined]
 
 
 # Visualize band
@@ -137,7 +137,7 @@ def task_process_conformal_inference_results_to_bands(
 
 
 def task_visualize_application_bands(
-    min_width_band_paths: Path = BLD_APPLICATION / "min_width_bands.pickle",
+    fair_band_paths: Path = BLD_APPLICATION / "fair_bands.pickle",
     conformal_inference_band_paths: Path = (
         BLD_APPLICATION / "conformal_inference_bands.pickle"
     ),
@@ -148,15 +148,15 @@ def task_visualize_application_bands(
         for amputee_index in range(7)
     ],
 ) -> None:
-    min_width_bands = pd.read_pickle(min_width_band_paths)
+    fair_bands = pd.read_pickle(fair_band_paths)
     conformal_inference_bands = pd.read_pickle(conformal_inference_band_paths)
     y_new = pd.read_pickle(y_new_path)
     y_nearest_neighbors = pd.read_pickle(y_nearest_neighbors_path)
     for amputee_index, processed_path in enumerate(figure_paths):
-        min_width_band = min_width_bands[amputee_index]
+        fair_band = fair_bands[amputee_index]
         conformal_inference_band = conformal_inference_bands[amputee_index]
         fig = visualize_bands(
-            min_width_band=min_width_band,
+            fair_band=fair_band,
             conformal_inference_band=conformal_inference_band,
             new_y=y_new[amputee_index],
             nearest_neighbor_y=y_nearest_neighbors[amputee_index],
@@ -170,7 +170,7 @@ def task_visualize_application_bands(
 
 
 def visualize_bands(
-    min_width_band: Band,
+    fair_band: Band,
     conformal_inference_band: Band,
     new_y: np.ndarray,
     nearest_neighbor_y: np.ndarray,
@@ -191,7 +191,7 @@ def visualize_bands(
     )
 
     ax = _visualize_bands(
-        min_width_band=min_width_band,
+        fair_band=fair_band,
         conformal_inference_band=conformal_inference_band,
         ax=ax,
         new_y=new_y,
@@ -219,7 +219,7 @@ def visualize_bands(
     fig.legend(
         handles,
         [
-            "Min.-Width",
+            "Fair",
             "Conf. Inf.",
             r"$Y_{\textsf{amputee}}(t)$",
             r"$Y_{\textsf{nearest-neighbor}}(t)$",
@@ -239,7 +239,7 @@ def visualize_bands(
 
 
 def _visualize_bands(
-    min_width_band: Band,
+    fair_band: Band,
     conformal_inference_band: Band,
     new_y: np.ndarray,
     nearest_neighbor_y: np.ndarray,
@@ -249,7 +249,7 @@ def _visualize_bands(
     """Create figure showing stationary or non-stationary outcomes."""
 
     time_grid = np.linspace(0, 1, 101)
-    new_y_hat = min_width_band.estimate
+    new_y_hat = fair_band.estimate
 
     tableau = {
         "blue": "#5778a4",
@@ -264,9 +264,9 @@ def _visualize_bands(
     # legend labels is not correct
     ax.fill_between(
         time_grid,
-        min_width_band.lower,
-        min_width_band.upper,
-        label="Min.-Width",
+        fair_band.lower,
+        fair_band.upper,
+        label="Fair",
         alpha=0.6,
         color=tableau["blue"],
         zorder=2,

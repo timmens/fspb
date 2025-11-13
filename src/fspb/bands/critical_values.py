@@ -147,7 +147,7 @@ class Algorithm(ABC):
     def _is_feasible(
         self, u: NDArray[np.floating], constraint: sp_opt.NonlinearConstraint
     ) -> bool:
-        return constraint.lb <= constraint.fun(u) <= constraint.ub
+        return constraint.lb <= constraint.fun(u) <= constraint.ub  # type: ignore[operator, return-value, arg-type]
 
     def make_feasible(
         self,
@@ -158,12 +158,12 @@ class Algorithm(ABC):
         # Define violation measure (0 if feasible, positive otherwise)
         constraint_center = (constraint.lb + constraint.ub) / 2
 
-        def violation(x):
-            return (constraint.fun(x) - constraint_center) ** 2
+        def violation(x):  # type: ignore[no-untyped-def]
+            return (constraint.fun(x) - constraint_center) ** 2  # type: ignore[operator]
 
-        def violation_gradient(x):
-            grad = constraint.jac(x)
-            return 2 * (constraint.fun(x) - constraint_center) * grad
+        def violation_gradient(x):  # type: ignore[no-untyped-def]
+            grad = constraint.jac(x)  # type: ignore[misc]
+            return 2 * (constraint.fun(x) - constraint_center) * grad  # type: ignore[operator]
 
         import scipy.optimize as sp_opt
 
@@ -204,7 +204,7 @@ class Algorithm(ABC):
             ub=MAX_CRITICAL_VALUE,
         )
 
-        u0_feasible = self.make_feasible(u0, constraint, bounds)
+        u0_feasible = self.make_feasible(u0, constraint, bounds)  # type: ignore[arg-type]
 
         method_to_options = {
             "COBYLA": {"maxiter": maxiter, "rhobeg": np.min(u0) / 500},

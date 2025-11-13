@@ -32,11 +32,7 @@ def produce_prediction_publication_table(
 
     result = result.reset_index()
     methods = set(result["method"].values)
-    if methods == {"min_width", "ci"}:
-        cats = ["min_width", "ci"]
-    elif methods == {"min_width", "fair"}:
-        cats = ["min_width", "fair"]
-    elif methods == {"fair", "ci"}:
+    if methods == {"fair", "ci"}:
         cats = ["fair", "ci"]
     else:
         raise ValueError(f"Unexpected methods in result: {methods}")
@@ -48,7 +44,6 @@ def produce_prediction_publication_table(
             {
                 "fair": "Fair",
                 "ci": "Conf. Inf.",
-                "min_width": "Min.-Width",
             }
         )
     )
@@ -74,11 +69,11 @@ def produce_confidence_publication_table(consolidated: pd.DataFrame) -> pd.DataF
 
     result = pd.DataFrame(combined).reset_index()
 
-    # Ordered methods and final labels
+    # Only Fair method for confidence bands
     result["method"] = (
         result["method"]
-        .astype(pd.CategoricalDtype(["min_width", "fair"], ordered=True))
-        .cat.rename_categories({"fair": "Fair", "min_width": "Min.-Width"})
+        .astype(pd.CategoricalDtype(["fair"], ordered=True))
+        .cat.rename_categories({"fair": "Fair"})
     )
 
     # Rename variables to publication-friendly labels
@@ -95,7 +90,7 @@ def produce_confidence_publication_table(consolidated: pd.DataFrame) -> pd.DataF
 
     # Pivot to MultiIndex columns: (Metric, Band)
     result = (
-        result.set_index(["$n$", r"$\nu$", "Method"])
+        result.set_index(["$n$", r"$\nu$", "Method"])  # type: ignore[assignment]
         .sort_index()
         .unstack(level="Method")  # -> columns like (Coverage, Fair) etc.
     )
@@ -107,19 +102,19 @@ def produce_confidence_publication_table(consolidated: pd.DataFrame) -> pd.DataF
     return result
 
 
-template_start_min_width_vs_fair = r"""
-\begin{tabular}{rrcccccc}
+template_start_fair = r"""
+\begin{tabular}{rrccc}
 \toprule
- &  & \multicolumn{2}{c}{Coverage} & \multicolumn{2}{c}{Maximum Width} & \multicolumn{2}{c}{Band Score} \\
-$n$ & $\nu$ & Min.-Width & Fair & Min.-Width & Fair & Min.-Width & Fair \\
+ &  & Coverage & Maximum Width & Band Score \\
+$n$ & $\nu$ & Fair & Fair & Fair \\
 \midrule
 """
 
-template_start_min_width_vs_ci = r"""
+template_start_fair_vs_ci = r"""
 \begin{tabular}{rrcccccc}
 \toprule
  &  & \multicolumn{2}{c}{Coverage} & \multicolumn{2}{c}{Maximum Width} & \multicolumn{2}{c}{Band Score} \\
-$n$ & $\nu$ & Min.-Width & Conf. Inf. & Min.-Width & Conf. Inf. & Min.-Width & Conf. Inf. \\
+$n$ & $\nu$ & Fair & Conf. Inf. & Fair & Conf. Inf. & Fair & Conf. Inf. \\
 \midrule
 """
 
@@ -132,26 +127,13 @@ template_end = r"""
 def fill_template(df: pd.DataFrame, type: str) -> str:
     if type == "confidence":
         col_order = [
-            ("Coverage", "Min.-Width"),
             ("Coverage", "Fair"),
-            ("Maximum Width", "Min.-Width"),
             ("Maximum Width", "Fair"),
-            ("Band Score", "Min.-Width"),
             ("Band Score", "Fair"),
         ]
-        template_start = template_start_min_width_vs_fair
+        template_start = template_start_fair
     elif type == "prediction":
         col_order = [
-            ("Coverage", "Min.-Width"),
-            ("Coverage", "Conf. Inf."),
-            ("Maximum Width", "Min.-Width"),
-            ("Maximum Width", "Conf. Inf."),
-            ("Band Score", "Min.-Width"),
-            ("Band Score", "Conf. Inf."),
-        ]
-        template_start = template_start_min_width_vs_ci
-    elif type == "prediction_fair":
-        col_order = [
             ("Coverage", "Fair"),
             ("Coverage", "Conf. Inf."),
             ("Maximum Width", "Fair"),
@@ -159,16 +141,16 @@ def fill_template(df: pd.DataFrame, type: str) -> str:
             ("Band Score", "Fair"),
             ("Band Score", "Conf. Inf."),
         ]
-        template_start = template_start_min_width_vs_ci
+        template_start = template_start_fair_vs_ci
     else:
         raise ValueError(f"Unknown type: {type}")
 
     rows = []
     for n, sub in df.groupby(level=0):
         first = True
-        for (nn, nu), row in sub.iterrows():
+        for (nn, nu), row in sub.iterrows():  # type: ignore[misc]
             n_cell = f"{n}" if first else ""
             first = False
             vals = [str(row[c]) for c in col_order]
-            rows.append(" & ".join([n_cell, str(nu), *vals]) + r" \\")
+            rows.append(" & ".join([n_cell, str(nu), *vals]) + r" \\")  # type: ignore[has-type]
     return template_start + "\n".join(rows) + template_end

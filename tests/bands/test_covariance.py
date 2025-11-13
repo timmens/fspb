@@ -65,7 +65,7 @@ def test_calculate_homoskedastic_error(data):
             [4, 8],
         ]
     )
-    got = _calculate_error_covariance(residuals)
+    got = _calculate_error_covariance(residuals, n_parameters=2)
     assert got.shape == expected_shape
     assert_array_equal(got, expected)
 
@@ -151,11 +151,13 @@ def test_calculate_covariance_prediction_band(data):
 def test_estimate_scaling_covariance_and_dof(data):
     """Test scaling covariance estimation."""
     _, _, residuals = data
-    sigma_error = _calculate_error_covariance(residuals)  # [[2, 4], [4, 8]]
+    sigma_error = _calculate_error_covariance(
+        residuals, n_parameters=2
+    )  # [[2, 4], [4, 8]]
     dof = estimate_dof(residuals)  # 4.001
     expected = sigma_error * (dof - 2) / dof  # [[2, 4], [4, 8]] * (4.001 - 2) / 4.001
 
-    got = _estimate_scaling_covariance_and_dof(residuals)
+    got = _estimate_scaling_covariance_and_dof(residuals, n_parameters=2)
     assert got.shape == expected.shape
     assert_array_equal(got, expected)
 
@@ -168,7 +170,7 @@ def test_calculate_covariance_prediction_band_internal(data):
     confidence_cov = _calculate_covariance_confidence_band(
         residuals, x=x, x_new=x_new, error_assumption=ErrorAssumption.HOMOSKEDASTIC
     )
-    scaling_cov = _estimate_scaling_covariance_and_dof(residuals)
+    scaling_cov = _estimate_scaling_covariance_and_dof(residuals, n_parameters=2)
     expected = confidence_cov / len(residuals) + scaling_cov
 
     got = _calculate_covariance_prediction_band(
@@ -213,14 +215,14 @@ def test_error_covariance_different_shapes():
     """Test error covariance with different input shapes."""
     # Single time point
     residuals_1d = np.array([[1], [2], [3]])
-    cov = _calculate_error_covariance(residuals_1d)
+    cov = _calculate_error_covariance(residuals_1d, n_parameters=2)
     expected = np.array([[14.0]])  # residuals.T @ residuals = [[14]] / (3-2) = [[14]]
     assert cov.shape == (1, 1)
     assert_array_equal(cov, expected)
 
     # Many time points
     residuals_many = np.random.randn(10, 5)
-    cov = _calculate_error_covariance(residuals_many)
+    cov = _calculate_error_covariance(residuals_many, n_parameters=2)
     assert cov.shape == (5, 5)
     # Should be symmetric and positive semi-definite
     assert np.allclose(cov, cov.T)
@@ -265,7 +267,7 @@ def test_minimal_dimensions(minimal_data):
     # Verify the prediction band formula: cov_pred = cov_conf / n + scaling_cov
     from fspb.bands.covariance import _estimate_scaling_covariance_and_dof
 
-    scaling_cov = _estimate_scaling_covariance_and_dof(residuals)
+    scaling_cov = _estimate_scaling_covariance_and_dof(residuals, n_parameters=1)
     expected_pred = cov_conf / len(residuals) + scaling_cov
     assert_array_equal(cov_pred, expected_pred)
 

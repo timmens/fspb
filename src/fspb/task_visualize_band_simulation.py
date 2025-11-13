@@ -69,11 +69,11 @@ for scenario in scenarios:
             n_simulations=N_TRIALS,
             simulation_options=simulation_options,
             band_options=band_options,
-            estimation_method=EstimationMethod.MIN_WIDTH,
+            estimation_method=EstimationMethod.FAIR,
             n_cores=10,
             seed=BASE_SEED,
         )
-        pd.to_pickle(results, result_path)
+        pd.to_pickle(results, result_path)  # type: ignore[attr-defined]
 
     # Skip confidence band simulation in R
     # ==================================================================================
@@ -150,7 +150,7 @@ for scenario in scenarios:
             our_results=[our_results],
             scenarios=[scenario],
         )
-        pd.to_pickle(processed[0], processed_path)
+        pd.to_pickle(processed[0], processed_path)  # type: ignore[attr-defined]
 
 # Visualize band
 # ======================================================================================
@@ -266,7 +266,7 @@ def visualize_bands(
     fig.legend(
         handles,
         [
-            "Min.-Width",
+            "Fair",
             "Conf. Inf.",
             r"$Y_{\textsf{new}}(t)$",
             r"$X_{\textsf{new}}(t)^{\mathsf{T}} \hat{\beta}(t)$",

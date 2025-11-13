@@ -52,7 +52,8 @@ for scenario in PREDICTION_SCENARIOS + CONFIDENCE_SCENARIOS:
         SRC / "simulation" / "model_simulation.py",
     ]
 
-    for method in [EstimationMethod.FAIR, EstimationMethod.MIN_WIDTH]:
+    # Only run FAIR method (MIN_WIDTH code is kept but not used in simulations)
+    for method in [EstimationMethod.FAIR]:
 
         @pytask.task(id=f"{method}/{scenario.to_str()}")
         def task_simulation_study_our_method(
@@ -72,7 +73,7 @@ for scenario in PREDICTION_SCENARIOS + CONFIDENCE_SCENARIOS:
                 n_cores=N_JOBS,
                 seed=1239487,
             )
-            pd.to_pickle(results, result_path)
+            pd.to_pickle(results, result_path)  # type: ignore[attr-defined]
 
     # Skip confidence band simulation in R
     # ==================================================================================
