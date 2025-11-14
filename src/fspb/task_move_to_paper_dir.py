@@ -43,14 +43,11 @@ if MOVE_RESULTS_TO_PAPER_DIR:
         ) -> None:
             shutil.copy(simulation_results_table_path, to_path)
 
-        @pytask.task(id=covariance_type)
-        def task_move_confidence_simulation_results_table(
-            simulation_results_table_path: Path = BLD_TABLES
-            / f"confidence_{covariance_type}.tex",
-            to_path: Annotated[Path, Product] = PAPER_BLD
-            / f"confidence_{covariance_type}.tex",
-        ) -> None:
-            shutil.copy(simulation_results_table_path, to_path)
+    def task_move_confidence_simulation_results_table(
+        simulation_results_table_path: Path = BLD_TABLES / "confidence.tex",
+        to_path: Annotated[Path, Product] = PAPER_BLD / "confidence.tex",
+    ) -> None:
+        shutil.copy(simulation_results_table_path, to_path)
 
     def task_move_amputee_band_6(
         application_analysis_result_band_path: Path = BLD_APPLICATION
