@@ -2,10 +2,6 @@
 
 ## Installation
 
-> [!IMPORTANT]
-> Currently, the environment can only be installed on Linux and Intel-based
-> MacOS.
-
 First you need to install the R environment (this you only need to do once):
 
 ```console
