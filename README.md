@@ -30,4 +30,4 @@ Python implementation, is available at
 
 https://github.com/creutzml/FunctionalPrediction
 
-written by Micheal L. Creutzinger.
+written by Michael L. Creutzinger.
