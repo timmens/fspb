@@ -8,26 +8,28 @@ First you need to install the R environment (this you only need to do once):
 pixi run R
 ```
 
+which will open the R console. Then run:
+
 ```R
 install.packages("conformalInference.fd", repos="https://cloud.r-project.org")
 ```
 
 ## Reproducing the results
 
-Run
+To reproduce the results, run
 
 ```console
 pixi run pytask
 ```
 
-to reproduce the results, which will be written to the `bld` folder.
+which will create a `bld` folder containing the results.
 
+---
 
-## R Implementation
-
-A pure R implementation of the FSPB method, which also guided the development of this
+> [!NOTE]
+>  An **R implementation** of the FSPB method, which also guided the development of this
 Python implementation, is available at
-
-https://github.com/creutzml/FunctionalPrediction
-
-written by Michael L. Creutzinger.
+>
+> https://github.com/creutzml/FunctionalPrediction
+>
+> written by Michael L. Creutzinger.
