@@ -10,6 +10,11 @@ import pandas as pd
 from pytask import Product
 import pytask
 
+# ======================================================================================
+# Prediction Results Tables: Fair vs. Conformal Inference
+# --------------------------------------------------------------------------------------
+# Produce one table for each covariance type (stationary, non_stationary)
+# ======================================================================================
 
 for covariance_type in ("stationary", "non_stationary"):
 
@@ -31,20 +36,24 @@ for covariance_type in ("stationary", "non_stationary"):
         latex_str = fill_template(table, type="prediction")
         product_path.write_text(latex_str)
 
-    @pytask.task(id=covariance_type)
-    def task_produce_confidence_table(
-        _script: Path = SRC / "simulation" / "results_tables.py",
-        consolidated_path: Path = BLD_SIMULATION_PROCESSED / "consolidated.pkl",
-        product_path: Annotated[Path, Product] = BLD_TABLES
-        / f"confidence_{covariance_type}.tex",
-        covariance_type: str = covariance_type,
-    ) -> None:
-        consolidated: pd.DataFrame = pd.read_pickle(consolidated_path)
-        confidence_results = (
-            consolidated.xs("confidence", level="band_type")
-            .xs(covariance_type, level="covariance_type")
-            .query("method == 'fair'")
-        )
-        table = produce_confidence_publication_table(confidence_results)
-        latex_str = fill_template(table, type="confidence")
-        product_path.write_text(latex_str)
+
+# ======================================================================================
+# Confidence Results Tables: Fair Only
+# --------------------------------------------------------------------------------------
+# Produce a single table including both covariance types
+# ======================================================================================
+
+
+@pytask.task(id=covariance_type)
+def task_produce_confidence_table(
+    _script: Path = SRC / "simulation" / "results_tables.py",
+    consolidated_path: Path = BLD_SIMULATION_PROCESSED / "consolidated.pkl",
+    product_path: Annotated[Path, Product] = BLD_TABLES / "confidence.tex",
+) -> None:
+    consolidated: pd.DataFrame = pd.read_pickle(consolidated_path)
+    confidence_results = consolidated.xs("confidence", level="band_type").query(
+        "method == 'fair'"
+    )
+    table = produce_confidence_publication_table(confidence_results)
+    latex_str = fill_template(table, type="confidence")
+    product_path.write_text(latex_str)

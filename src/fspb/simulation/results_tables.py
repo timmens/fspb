@@ -22,9 +22,9 @@ def produce_prediction_publication_table(
     result = pd.DataFrame(combined)
 
     var_rename_mapping = {
-        "coverage": "Coverage",
-        "maximum_width_statistic": "Maximum Width",
-        "band_score": "Band Score",
+        "coverage": r"\textsc{Coverage}",
+        "maximum_width_statistic": r"\textsc{Maximum Width}",
+        "band_score": r"\textsc{Band Score}",
         "n_samples": "$n$",
         "dof": r"$\nu$",
         "covariance_type": r"$\gamma_{st}$",
@@ -76,11 +76,22 @@ def produce_confidence_publication_table(consolidated: pd.DataFrame) -> pd.DataF
         .cat.rename_categories({"fair": "Fair"})
     )
 
+    result["covariance_type"] = (
+        result["covariance_type"]
+        .astype(pd.CategoricalDtype(["stationary", "non_stationary"], ordered=False))
+        .cat.rename_categories(
+            {
+                "stationary": "Stat.",
+                "non_stationary": "Non-Stat.",
+            }
+        )
+    )
+
     # Rename variables to publication-friendly labels
     var_rename_mapping = {
-        "coverage": "Coverage",
-        "maximum_width_statistic": "Maximum Width",
-        "band_score": "Band Score",
+        "coverage": r"\textsc{Coverage}",
+        "maximum_width_statistic": r"\textsc{Maximum Width}",
+        "band_score": r"\textsc{Band Score}",
         "n_samples": "$n$",
         "dof": r"$\nu$",
         "method": "Method",
@@ -88,11 +99,12 @@ def produce_confidence_publication_table(consolidated: pd.DataFrame) -> pd.DataF
 
     result = result.rename(columns=var_rename_mapping)
 
-    # Pivot to MultiIndex columns: (Metric, Band)
+    # Pivot to MultiIndex columns: (Metric, Covariance Type)
     result = (
-        result.set_index(["$n$", r"$\nu$", "Method"])  # type: ignore[assignment]
+        result.set_index(["$n$", r"$\nu$", "covariance_type"])  # type: ignore[assignment]
         .sort_index()
-        .unstack(level="Method")  # -> columns like (Coverage, Fair) etc.
+        .drop(columns=["Method"])
+        .unstack(level="covariance_type")
     )
 
     # Tidy column index (remove names)
@@ -103,43 +115,46 @@ def produce_confidence_publication_table(consolidated: pd.DataFrame) -> pd.DataF
 
 
 template_start_fair = r"""
-\begin{tabular}{rrccc}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} rrcccccc}
 \toprule
- &  & Coverage & Maximum Width & Band Score \\
-$n$ & $\nu$ & Fair & Fair & Fair \\
+ &  & \multicolumn{2}{c}{\textsc{Coverage}} & \multicolumn{2}{c}{\textsc{Maximum Width}} & \multicolumn{2}{c}{\textsc{Band Score}} \\
+$n$ & $\nu$ & Stat. & Non-Stat. & Stat. & Non-Stat. & Stat. & Non-Stat. \\
 \midrule
 """
 
 template_start_fair_vs_ci = r"""
-\begin{tabular}{rrcccccc}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} rrcccccc}
 \toprule
- &  & \multicolumn{2}{c}{Coverage} & \multicolumn{2}{c}{Maximum Width} & \multicolumn{2}{c}{Band Score} \\
+ &  & \multicolumn{2}{c}{\textsc{Coverage}} & \multicolumn{2}{c}{\textsc{Maximum Width}} & \multicolumn{2}{c}{\textsc{Band Score}} \\
 $n$ & $\nu$ & Fair & Conf. Inf. & Fair & Conf. Inf. & Fair & Conf. Inf. \\
 \midrule
 """
 
 template_end = r"""
 \bottomrule
-\end{tabular}
+\end{tabular*}
 """
 
 
 def fill_template(df: pd.DataFrame, type: str) -> str:
     if type == "confidence":
         col_order = [
-            ("Coverage", "Fair"),
-            ("Maximum Width", "Fair"),
-            ("Band Score", "Fair"),
+            (r"\textsc{Coverage}", "Stat."),
+            (r"\textsc{Coverage}", "Non-Stat."),
+            (r"\textsc{Maximum Width}", "Stat."),
+            (r"\textsc{Maximum Width}", "Non-Stat."),
+            (r"\textsc{Band Score}", "Stat."),
+            (r"\textsc{Band Score}", "Non-Stat."),
         ]
         template_start = template_start_fair
     elif type == "prediction":
         col_order = [
-            ("Coverage", "Fair"),
-            ("Coverage", "Conf. Inf."),
-            ("Maximum Width", "Fair"),
-            ("Maximum Width", "Conf. Inf."),
-            ("Band Score", "Fair"),
-            ("Band Score", "Conf. Inf."),
+            (r"\textsc{Coverage}", "Fair"),
+            (r"\textsc{Coverage}", "Conf. Inf."),
+            (r"\textsc{Maximum Width}", "Fair"),
+            (r"\textsc{Maximum Width}", "Conf. Inf."),
+            (r"\textsc{Band Score}", "Fair"),
+            (r"\textsc{Band Score}", "Conf. Inf."),
         ]
         template_start = template_start_fair_vs_ci
     else:
