@@ -33,10 +33,12 @@ for amputee in (False, True):
         if USE_CLEANED_DATA:
             clean_df = pd.read_csv(x_data_path, delimiter=",", index_col="id")
             # Sex column needs to be stored as codes
-            clean_df["sex"] = _clean_sex(clean_df["sex"], amputee=clean_df["amputee"])
+            clean_df["sex"] = _clean_sex(
+                clean_df["sex"], amputee=clean_df["amputee"], is_clean=True
+            )
         else:
             df_x = pd.read_csv(x_data_path, delimiter=",")
-            clean_df = _clean_predictors(df_x)
+            clean_df = _clean_predictors(df_x, is_clean=False)
         x_arr = _create_predictor_array(clean_df, amputee=amputee, n_time_points=101)
         pd.to_pickle(x_arr, produces)  # type: ignore[attr-defined]
 
@@ -54,18 +56,18 @@ def _create_predictor_array(
     return x_arr[:, :, np.newaxis].repeat(n_time_points, axis=2)
 
 
-def _clean_predictors(df_x: pd.DataFrame) -> pd.DataFrame:
+def _clean_predictors(df_x: pd.DataFrame, is_clean: bool) -> pd.DataFrame:
     clean = pd.DataFrame(index=df_x.index)
     clean["mass"] = df_x["Mass"].astype(pd.Float64Dtype())
     clean["age"] = df_x["Age"].astype(pd.Int64Dtype())
     clean["height"] = df_x["Height"].astype(pd.Float64Dtype())
-    clean["amputee"] = (df_x.index >= len(df_x) - 7).astype(bool)
-    clean["sex"] = _clean_sex(df_x["Sex"], amputee=clean["amputee"])
+    clean["amputee"] = df_x["FileName"].str.contains("X").astype(bool)
+    clean["sex"] = _clean_sex(df_x["Sex"], amputee=clean["amputee"], is_clean=is_clean)
     clean["t_push_v"] = df_x["TPush_V"].astype(pd.Float64Dtype())
     return clean
 
 
-def _clean_sex(sex: pd.Series, amputee: pd.Series) -> pd.Series:
+def _clean_sex(sex: pd.Series, amputee: pd.Series, is_clean: bool) -> pd.Series:
     """Clean sex column.
 
     Works on cleaned and uncleaned sex column.
@@ -75,6 +77,11 @@ def _clean_sex(sex: pd.Series, amputee: pd.Series) -> pd.Series:
 
     """
     cleaned = sex.astype(pd.CategoricalDtype())
+
+    if is_clean:
+        # Cleaned data has correctly labeled sex for amputee athletes
+        return cleaned.cat.rename_categories({"female": 0, "male": 1}).cat.codes
+
     if set(cleaned.cat.categories) == {-1, 1}:
         cleaned = cleaned.cat.rename_categories({-1: "female", 1: "male"})
     # There was confusion on the amputee sprinters sex, as the data
