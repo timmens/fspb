@@ -11,7 +11,7 @@ dependencies = [
 build-backend = "hatchling.build"
 requires = ["hatchling"]
 
-[tool.pixi.project]
+[tool.pixi.workspace]
 channels = ["conda-forge"]
 platforms = ["linux-64", "osx-64"]
 
@@ -32,7 +32,7 @@ pandas = ">=2.2.3,<3"
 pre-commit = ">=4.1.0,<5"
 mypy = "==1.17.0"
 scipy-stubs = ">=1.15.1.0,<2"
-pytask = ">=0.5.2,<0.6"
+pytask = ">=0.5.7,<0.6"
 joblib = ">=1.4.2,<2"
 pandas-stubs = ">=2.2.3.250308,<3"
 r-languageserver = ">=0.3.16,<0.4"
@@ -43,7 +43,7 @@ jax = ">=0.5.2,<0.6"
 optimagic = ">=0.5.1,<0.6"
 cyipopt = ">=1.5.0,<2"
 nlopt = ">=2.10.0,<3"
-pytask-r = ">=0.4.1,<0.5"
+pytask-r = ">=0.4.1"
 pytask-parallel = ">=0.5.1,<0.6"
 r-fda = ">=6.3.0,<7"
 r-future = ">=1.67.0,<2"

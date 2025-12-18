@@ -4,12 +4,13 @@ from pathlib import Path
 from pytask import task
 from scipy.interpolate import interp1d
 
-from fspb.config import SRC, BLD_APPLICATION
+from fspb.config import SRC, BLD_APPLICATION, USE_CLEANED_DATA
 
 
 # ======================================================================================
 # Clean predictor data
 # ======================================================================================
+
 
 # --------------------------------------------------------------------------------------
 # Tasks
@@ -18,14 +19,25 @@ from fspb.config import SRC, BLD_APPLICATION
 for amputee in (False, True):
     fname = {False: "x_train", True: "x_pred"}[amputee]
 
+    if USE_CLEANED_DATA:
+        x_data_path = SRC / "application" / "covariates.csv"
+    else:
+        x_data_path = SRC / "application" / "CovariatesReduced.csv"
+
     @task()
     def task_create_x_train(
-        x_data_path: Path = SRC / "application" / "CovariatesReduced.csv",
+        x_data_path: Path = x_data_path,
         produces: Path = BLD_APPLICATION / f"{fname}.pickle",
         amputee: bool = amputee,
     ) -> None:
-        df_x = pd.read_csv(x_data_path, delimiter=",")
-        x_arr = _create_predictor_array(df_x, amputee=amputee, n_time_points=101)
+        if USE_CLEANED_DATA:
+            clean_df = pd.read_csv(x_data_path, delimiter=",", index_col="id")
+            # Sex column needs to be stored as codes
+            clean_df["sex"] = _clean_sex(clean_df["sex"], amputee=clean_df["amputee"])
+        else:
+            df_x = pd.read_csv(x_data_path, delimiter=",")
+            clean_df = _clean_predictors(df_x)
+        x_arr = _create_predictor_array(clean_df, amputee=amputee, n_time_points=101)
         pd.to_pickle(x_arr, produces)  # type: ignore[attr-defined]
 
 # --------------------------------------------------------------------------------------
@@ -34,9 +46,8 @@ for amputee in (False, True):
 
 
 def _create_predictor_array(
-    df_x: pd.DataFrame, amputee: bool, n_time_points: int
+    clean_df: pd.DataFrame, amputee: bool, n_time_points: int
 ) -> np.ndarray:
-    clean_df = _clean_predictors(df_x)
     dropped_df = clean_df.loc[clean_df["amputee"] == amputee].drop(columns=["amputee"])
     dropped_df.insert(0, "intercept", 1)
     x_arr = dropped_df.to_numpy(dtype=np.float64)
@@ -57,18 +68,20 @@ def _clean_predictors(df_x: pd.DataFrame) -> pd.DataFrame:
 def _clean_sex(sex: pd.Series, amputee: pd.Series) -> pd.Series:
     """Clean sex column.
 
+    Works on cleaned and uncleaned sex column.
+
     1. Sex of amputees is set to 'male'
     2. Converts 'female' to 0 and 'male' to 1.
 
     """
-    cleaned = sex.astype(pd.CategoricalDtype()).cat.rename_categories(
-        {-1: "female", 1: "male"}
-    )
+    cleaned = sex.astype(pd.CategoricalDtype())
+    if set(cleaned.cat.categories) == {-1, 1}:
+        cleaned = cleaned.cat.rename_categories({-1: "female", 1: "male"})
     # There was confusion on the amputee sprinters sex, as the data
     # shows that two of them are female, but in Willwacher et al. (2016), they are
-    # described to all be male. When Dominik asked Steffen, he was confident this
-    # was just a typo in the data.
-    cleaned.loc[amputee] = "male"
+    # described to all be male. When Dominik Liebl asked Steffen Willwacher, he was
+    # confident this was just a typo in the data.
+    cleaned.loc[amputee] = "male"  # type: ignore[call-overload]
     return cleaned.cat.codes
 
 
@@ -79,13 +92,21 @@ def _clean_sex(sex: pd.Series, amputee: pd.Series) -> pd.Series:
 for amputee in (False, True):
     fname = {False: "y_train", True: "y_pred"}[amputee]
 
+    if USE_CLEANED_DATA:
+        y_data_path = SRC / "application" / "outcomes.csv"
+    else:
+        y_data_path = SRC / "application" / "FRONT_V.csv"
+
     @task()
     def task_create_y_train(
-        y_data_path: Path = SRC / "application" / "FRONT_V.csv",
+        y_data_path: Path = y_data_path,
         produces: Path = BLD_APPLICATION / f"{fname}.pickle",
         amputee: bool = amputee,
     ) -> None:
-        y_arr = pd.read_csv(y_data_path, delimiter=";", header=None).T.to_numpy()
+        if USE_CLEANED_DATA:
+            y_arr = pd.read_csv(y_data_path, delimiter=",", index_col="id").to_numpy()
+        else:
+            y_arr = pd.read_csv(y_data_path, delimiter=";", header=None).T.to_numpy()
         updated = _create_outcome_array(
             y_arr,
             amputee=amputee,

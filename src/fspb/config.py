@@ -20,6 +20,8 @@ BLD_TABLES = BLD / "tables"
 BLD_FIGURES = BLD / "figures"
 BLD_APPLICATION = BLD / "application"
 
+USE_CLEANED_DATA = True
+
 SKIP_R = False
 
 N_SIMULATIONS = 1_000
