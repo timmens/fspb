@@ -1,0 +1,59 @@
+import shutil
+from fspb.config import (
+    PAPER_BLD,
+    BLD_FIGURES,
+    BLD_TABLES,
+    BLD_APPLICATION,
+)
+import pytask
+from pathlib import Path
+from pytask import Product
+from typing import Annotated
+
+
+def task_move_outcome_figure(
+    outcome_figure_path: Path = BLD_FIGURES / "outcomes.pdf",
+    to_path: Annotated[Path, Product] = PAPER_BLD / "outcomes.pdf",
+) -> None:
+    shutil.copy(outcome_figure_path, to_path)
+
+
+def task_move_application_outcome_figure(
+    outcome_figure_path: Path = BLD_APPLICATION / "application-outcomes.pdf",
+    to_path: Annotated[Path, Product] = PAPER_BLD / "application-outcomes.pdf",
+) -> None:
+    shutil.copy(outcome_figure_path, to_path)
+
+
+def task_move_band_figure(
+    band_figure_path: Path = BLD_FIGURES / "band_seed_0.pdf",
+    to_path: Annotated[Path, Product] = PAPER_BLD / "band.pdf",
+) -> None:
+    shutil.copy(band_figure_path, to_path)
+
+
+for covariance_type in ("stationary", "non_stationary"):
+
+    @pytask.task(id=covariance_type)
+    def task_move_prediction_simulation_results_table_fair_vs_ci(
+        simulation_results_table_path: Path = BLD_TABLES
+        / f"prediction_{covariance_type}.tex",
+        to_path: Annotated[Path, Product] = PAPER_BLD
+        / f"prediction_{covariance_type}.tex",
+    ) -> None:
+        shutil.copy(simulation_results_table_path, to_path)
+
+
+def task_move_confidence_simulation_results_table(
+    simulation_results_table_path: Path = BLD_TABLES / "confidence.tex",
+    to_path: Annotated[Path, Product] = PAPER_BLD / "confidence.tex",
+) -> None:
+    shutil.copy(simulation_results_table_path, to_path)
+
+
+def task_move_prosthetic_band_6(
+    application_analysis_result_band_path: Path = BLD_APPLICATION
+    / "prosthetic_band_6.pdf",
+    to_path: Annotated[Path, Product] = PAPER_BLD / "prosthetic_band.pdf",
+) -> None:
+    shutil.copy(application_analysis_result_band_path, to_path)

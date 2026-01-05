@@ -1,0 +1,33 @@
+# AI
+.claude
+
+# Private data
+src/fspb/application/covariates.csv
+src/fspb/application/outcomes.csv
+src/fspb/application/CovariatesReduced.csv
+src/fspb/application/FRONT_V.csv
+
+# pixi environments
+.pixi
+*.egg-info
+
+# build directory
+bld
+paper_bld
+
+# Python
+__pycache__/
+**/sandbox.ipynb
+.ruff_cache/
+.pytask/
+.pytest_cache/
+.mypy_cache/
+
+# vscode
+.vscode/
+
+# R
+renv/
+.RData
+.Rhistory
+.Rproj.user
