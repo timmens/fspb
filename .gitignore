@@ -18,6 +18,7 @@ paper_bld
 # Python
 __pycache__/
 **/sandbox.ipynb
+sandbox/
 .ruff_cache/
 .pytask/
 .pytest_cache/

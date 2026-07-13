@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 import itertools
 from typing import Literal, TypedDict
@@ -20,7 +21,13 @@ BLD_FIGURES = BLD / "figures"
 BLD_APPLICATION = BLD / "application"
 
 USE_CLEANED_DATA = True
-USE_ANONYMIZED_DATA = False
+# Use the real (non-anonymized) data when it is present locally, otherwise fall back to
+# the anonymized data shipped with the repository so that a fresh clone runs out of the
+# box.
+_REAL_DATA_PRESENT = (SRC / "application" / "covariates.csv").exists() and (
+    SRC / "application" / "outcomes.csv"
+).exists()
+USE_ANONYMIZED_DATA = not _REAL_DATA_PRESENT
 
 SKIP_R = False
 
@@ -28,8 +35,14 @@ N_SIMULATIONS = 1_000
 N_JOBS = 12
 LENGTH_SCALE = 1.0
 
-# If running on Tim's laptop (thinky), move results to paper directory
-PAPER_BLD = ROOT / "paper_bld"
+# Directory the curated paper artifacts are copied to. Defaults to `paper_bld` inside
+# the repository; set the FSPB_PAPER_BLD environment variable to redirect them to an
+# external location (e.g. a separately synced paper project folder).
+PAPER_BLD = (
+    Path(os.environ["FSPB_PAPER_BLD"]).resolve()
+    if "FSPB_PAPER_BLD" in os.environ
+    else ROOT / "paper_bld"
+)
 
 
 class ScenarioDict(TypedDict):
